@@ -1111,13 +1111,13 @@ function AppShell({
 
       {/* ── Sidebar ── */}
       <aside
-        className={`fixed top-0 left-0 h-full z-50 flex flex-col w-60 bg-sidebar text-sidebar-foreground transition-transform duration-300 ease-in-out
+        className={`fixed top-0 left-0 h-full z-50 flex flex-col w-60 bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-transform duration-300 ease-in-out
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:static lg:z-auto`}
         data-ocid="sidebar.panel"
       >
         {/* Logo + Hotel name */}
         <div className="px-4 py-5 border-b border-sidebar-border flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/30 flex-shrink-0 shadow">
+          <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-sidebar-foreground/20 flex-shrink-0 shadow-lg">
             <img
               src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
               alt="Logo"
@@ -1128,14 +1128,17 @@ function AppShell({
             <p className="font-display font-bold text-sm text-sidebar-foreground leading-tight truncate">
               Gobinath Hotel
             </p>
-            <p className="text-[11px] text-sidebar-foreground/60 leading-tight truncate">
+            <p
+              className="text-[11px] leading-tight truncate"
+              style={{ color: "oklch(0.91 0.01 220 / 0.5)" }}
+            >
               {role === "owner" ? branch.short : "Staff Mode"}
             </p>
           </div>
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 no-scrollbar">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = screen === item.screen;
@@ -1145,58 +1148,72 @@ function AppShell({
                 key={item.id}
                 data-ocid={`sidebar.nav.${item.id}_link`}
                 onClick={() => onNavigate(item.screen)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group ${
                   isActive
-                    ? "sidebar-item-active text-sidebar-foreground font-semibold"
-                    : "text-sidebar-foreground/60 hover:bg-primary/8 hover:text-sidebar-foreground"
+                    ? "sidebar-item-active font-semibold"
+                    : "hover:bg-[#1E293B]"
                 }`}
               >
                 <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
                     isActive
-                      ? "bg-primary/20 text-primary"
-                      : "bg-white/8 text-sidebar-foreground/60"
+                      ? "bg-orange-500/20"
+                      : "bg-slate-800/60 group-hover:bg-slate-700/70"
                   }`}
                 >
                   <Icon
-                    className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                    className={`h-4 w-4 transition-colors duration-200 ${
+                      isActive
+                        ? "text-[#F97316]"
+                        : "text-[#94A3B8] group-hover:text-[#FB923C]"
+                    }`}
                   />
                 </div>
-                <span className="text-sm">{item.label}</span>
+                <span
+                  className={`text-sm transition-colors duration-200 ${
+                    isActive
+                      ? "text-[#E2E8F0]"
+                      : "text-[#94A3B8] group-hover:text-[#E2E8F0]"
+                  }`}
+                >
+                  {item.label}
+                </span>
               </button>
             );
           })}
         </nav>
 
         {/* Bottom: Branch switch (owner) + Theme toggle + Logout */}
-        <div className="border-t border-sidebar-border px-2 py-3 space-y-1">
+        <div className="border-t border-sidebar-border px-2 py-3 space-y-0.5">
           {role === "owner" && (
             <button
               type="button"
               data-ocid="sidebar.switch_branch_button"
               onClick={onSwitchBranch}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/60 hover:bg-primary/10 hover:text-sidebar-foreground transition-all duration-150"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 hover:bg-[#1E293B] group"
             >
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <MapPin className="h-4 w-4 text-primary" />
+              <div className="w-8 h-8 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-orange-500/25">
+                <MapPin className="h-4 w-4 text-[#F97316] group-hover:text-[#FB923C] transition-colors" />
               </div>
-              <span className="text-sm">Switch Branch</span>
+              <span className="text-sm text-[#94A3B8] group-hover:text-[#E2E8F0] transition-colors">
+                Switch Branch
+              </span>
             </button>
           )}
           <button
             type="button"
             data-ocid="sidebar.theme_toggle"
             onClick={onToggleDark}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/60 hover:bg-primary/10 hover:text-sidebar-foreground transition-all duration-150"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 hover:bg-[#1E293B] group"
           >
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-orange-500/25">
               {isDark ? (
-                <Sun className="h-4 w-4 text-primary" />
+                <Sun className="h-4 w-4 text-[#F97316] group-hover:text-[#FB923C] transition-colors" />
               ) : (
-                <Moon className="h-4 w-4 text-primary" />
+                <Moon className="h-4 w-4 text-[#F97316] group-hover:text-[#FB923C] transition-colors" />
               )}
             </div>
-            <span className="text-sm">
+            <span className="text-sm text-[#94A3B8] group-hover:text-[#E2E8F0] transition-colors">
               {isDark ? "Light Mode" : "Dark Mode"}
             </span>
           </button>
@@ -1204,12 +1221,14 @@ function AppShell({
             type="button"
             data-ocid="sidebar.logout_button"
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/60 hover:bg-destructive/20 hover:text-destructive transition-all duration-150"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 hover:bg-red-500/10 group"
           >
-            <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
-              <LogOut className="h-4 w-4 text-destructive" />
+            <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-red-500/25">
+              <LogOut className="h-4 w-4 text-red-400 group-hover:text-red-300 transition-colors" />
             </div>
-            <span className="text-sm">Logout</span>
+            <span className="text-sm text-[#94A3B8] group-hover:text-red-300 transition-colors">
+              Logout
+            </span>
           </button>
         </div>
       </aside>
