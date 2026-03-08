@@ -35,6 +35,7 @@ import {
   ArrowLeft,
   Banknote,
   BarChart2,
+  BarChart3,
   Building2,
   Calendar,
   Check,
@@ -58,6 +59,7 @@ import {
   Plus,
   Printer,
   QrCode,
+  Receipt,
   RefreshCw,
   Settings,
   Shield,
@@ -1701,49 +1703,66 @@ function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
 
 const MODULE_CONFIG: {
   label: string;
-  image: string;
+  icon: React.ComponentType<{
+    className?: string;
+    style?: React.CSSProperties;
+  }>;
+  iconBg: string;
+  iconColor: string;
   screen: Screen;
   ocid: string;
   description: string;
 }[] = [
   {
     label: "Billing",
-    image: "/assets/generated/dashboard-billing.dim_400x400.png",
+    icon: Receipt,
+    iconBg: "oklch(var(--primary) / 0.15)",
+    iconColor: "oklch(var(--primary))",
     screen: "billing",
     ocid: "dashboard.billing.card",
     description: "New orders & bills",
   },
   {
     label: "Menu",
-    image: "/assets/generated/dashboard-menu.dim_400x400.png",
+    icon: UtensilsCrossed,
+    iconBg: "oklch(0.730 0.175 45 / 0.15)",
+    iconColor: "oklch(0.730 0.175 45)",
     screen: "menu",
     ocid: "dashboard.menu.card",
     description: "Manage food items",
   },
   {
     label: "Reports",
-    image: "/assets/generated/dashboard-reports.dim_400x400.png",
+    icon: BarChart3,
+    iconBg: "oklch(0.52 0.09 210 / 0.18)",
+    iconColor: "oklch(0.52 0.09 210)",
     screen: "reports",
     ocid: "dashboard.reports.card",
     description: "Sales analytics",
   },
   {
     label: "Employees",
-    image: "/assets/generated/dashboard-employees.dim_400x400.png",
+    icon: Users,
+    iconBg: "oklch(0.42 0.16 260 / 0.18)",
+    iconColor: "oklch(0.42 0.16 260)",
     screen: "employees",
     ocid: "dashboard.employees.card",
     description: "Staff management",
   },
   {
     label: "Money Management",
-    image: "/assets/generated/dashboard-billing.dim_400x400.png",
+    icon: Wallet,
+    iconBg: "oklch(0.55 0.14 151 / 0.18)",
+    iconColor: "oklch(0.55 0.14 151)",
     screen: "money-management",
     ocid: "dashboard.money_management.card",
-    description: "Salary & payments",
+    description: "Salary & advances",
   },
   {
     label: "Settings",
-    image: "/assets/generated/dashboard-settings.dim_400x400.png",
+    icon: Settings,
+    iconBg: "oklch(var(--muted-foreground) / 0.15)",
+    iconColor: "oklch(var(--muted-foreground))",
     screen: "settings",
     ocid: "dashboard.settings.card",
     description: "App configuration",
@@ -1884,43 +1903,49 @@ function DashboardScreen({
         className="grid grid-cols-2 gap-4 sm:grid-cols-3"
         data-ocid="dashboard.modules_section"
       >
-        {MODULE_CONFIG.map((mod) => (
-          <motion.button
-            type="button"
-            key={mod.screen}
-            data-ocid={mod.ocid}
-            variants={itemVariants}
-            whileHover={{
-              scale: 1.05,
-              boxShadow:
-                "0 14px 40px 0 oklch(0.705 0.185 42 / 0.20), 0 4px 12px 0 oklch(0.705 0.185 42 / 0.12)",
-            }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => onNavigate(mod.screen)}
-            className="pos-card-hover flex flex-col items-center gap-2.5 p-4 sm:p-5 cursor-pointer min-h-[130px] sm:min-h-[150px] text-center"
-          >
-            {/* Module Image */}
-            <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-sm bg-secondary/50">
-              <img
-                src={mod.image}
-                alt={mod.label}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
+        {MODULE_CONFIG.map((mod) => {
+          const ModIcon = mod.icon;
+          return (
+            <motion.button
+              type="button"
+              key={mod.screen}
+              data-ocid={mod.ocid}
+              variants={itemVariants}
+              whileHover={{
+                y: -4,
+                scale: 1.03,
+                boxShadow:
+                  "0 14px 40px 0 oklch(0.705 0.185 42 / 0.18), 0 4px 12px 0 rgba(0,0,0,0.25)",
+              }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onNavigate(mod.screen)}
+              className="pos-card-hover flex flex-col items-center gap-3 p-4 sm:p-5 cursor-pointer min-h-[140px] sm:min-h-[155px] text-center"
+            >
+              {/* Icon container — soft circular background */}
+              <div
+                className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-200"
+                style={{
+                  background: mod.iconBg,
+                  boxShadow: `0 4px 18px 0 ${mod.iconBg.replace("/ 0.15", "/ 0.35").replace("/ 0.18", "/ 0.35")}`,
                 }}
-              />
-            </div>
-            {/* Label + Description */}
-            <div className="flex flex-col items-center gap-0.5">
-              <p className="font-display font-semibold text-sm sm:text-base leading-tight text-foreground">
-                {mod.label}
-              </p>
-              <p className="text-[11px] text-muted-foreground font-body leading-snug">
-                {mod.description}
-              </p>
-            </div>
-          </motion.button>
-        ))}
+              >
+                <ModIcon
+                  className="w-8 h-8 sm:w-9 sm:h-9"
+                  style={{ color: mod.iconColor }}
+                />
+              </div>
+              {/* Label + Description */}
+              <div className="flex flex-col items-center gap-0.5">
+                <p className="font-display font-semibold text-sm sm:text-base leading-tight text-foreground">
+                  {mod.label}
+                </p>
+                <p className="text-[11px] text-muted-foreground font-body leading-snug">
+                  {mod.description}
+                </p>
+              </div>
+            </motion.button>
+          );
+        })}
       </motion.div>
 
       {/* Recent Orders */}
