@@ -1478,53 +1478,44 @@ function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
 
 const MODULE_CONFIG: {
   label: string;
-  icon: React.ComponentType<{
-    className?: string;
-    style?: React.CSSProperties;
-  }>;
+  image: string;
   screen: Screen;
-  iconColor: string;
-  bgColor: string;
+  ocid: string;
   description: string;
 }[] = [
   {
     label: "Billing",
-    icon: ShoppingCart,
+    image: "/assets/generated/dashboard-billing.dim_400x400.png",
     screen: "billing",
-    iconColor: "#0F5132",
-    bgColor: "rgba(15,81,50,0.10)",
+    ocid: "dashboard.billing.card",
     description: "New orders & bills",
   },
   {
     label: "Menu",
-    icon: UtensilsCrossed,
+    image: "/assets/generated/dashboard-menu.dim_400x400.png",
     screen: "menu",
-    iconColor: "#FF7A00",
-    bgColor: "rgba(255,122,0,0.10)",
+    ocid: "dashboard.menu.card",
     description: "Manage food items",
   },
   {
     label: "Reports",
-    icon: BarChart2,
+    image: "/assets/generated/dashboard-reports.dim_400x400.png",
     screen: "reports",
-    iconColor: "#1F7A8C",
-    bgColor: "rgba(31,122,140,0.10)",
+    ocid: "dashboard.reports.card",
     description: "Sales analytics",
   },
   {
     label: "Employees",
-    icon: Users,
+    image: "/assets/generated/dashboard-employees.dim_400x400.png",
     screen: "employees",
-    iconColor: "#1E40AF",
-    bgColor: "rgba(30,64,175,0.10)",
+    ocid: "dashboard.employees.card",
     description: "Staff management",
   },
   {
     label: "Settings",
-    icon: Settings,
+    image: "/assets/generated/dashboard-settings.dim_400x400.png",
     screen: "settings",
-    iconColor: "#6B7280",
-    bgColor: "rgba(107,114,128,0.10)",
+    ocid: "dashboard.settings.card",
     description: "App configuration",
   },
 ];
@@ -1587,10 +1578,12 @@ function DashboardScreen({
         <div>
           <h2
             className="text-3xl sm:text-4xl font-bold tracking-tight"
+            data-ocid="dashboard.section"
             style={{
               fontFamily: "'Playfair Display', Georgia, serif",
               color: "#0F5132",
               letterSpacing: "-0.01em",
+              fontWeight: 700,
             }}
           >
             Dashboard
@@ -1694,51 +1687,55 @@ function DashboardScreen({
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+        className="grid grid-cols-2 gap-4 sm:grid-cols-3"
         data-ocid="dashboard.modules_section"
       >
-        {MODULE_CONFIG.map((mod) => {
-          const Icon = mod.icon;
-          return (
-            <motion.button
-              type="button"
-              key={mod.screen}
-              data-ocid={`dashboard.${mod.label.toLowerCase()}_card`}
-              variants={itemVariants}
-              whileHover={{
-                y: -4,
-                boxShadow:
-                  "0 10px 32px 0 rgba(15,81,50,0.15), 0 2px 8px 0 rgba(15,81,50,0.08)",
-              }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => onNavigate(mod.screen)}
-              className="flex flex-col items-start gap-3 bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-border cursor-pointer min-h-[120px] sm:min-h-[140px] text-left transition-shadow duration-200"
+        {MODULE_CONFIG.map((mod) => (
+          <motion.button
+            type="button"
+            key={mod.screen}
+            data-ocid={mod.ocid}
+            variants={itemVariants}
+            whileHover={{
+              scale: 1.05,
+              boxShadow:
+                "0 14px 40px 0 rgba(15,81,50,0.18), 0 4px 12px 0 rgba(15,81,50,0.10)",
+            }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => onNavigate(mod.screen)}
+            className="flex flex-col items-center gap-2.5 bg-white rounded-2xl p-4 sm:p-5 shadow-md border border-border cursor-pointer min-h-[130px] sm:min-h-[150px] text-center transition-all duration-200"
+          >
+            {/* Module Image */}
+            <div
+              className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-sm"
+              style={{ background: "#F8F5F0" }}
             >
-              {/* Icon circle */}
-              <div
-                className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: mod.bgColor }}
+              <img
+                src={mod.image}
+                alt={mod.label}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </div>
+            {/* Label + Description */}
+            <div className="flex flex-col items-center gap-0.5">
+              <p
+                className="font-semibold text-sm sm:text-base leading-tight"
+                style={{
+                  fontFamily: "'Playfair Display', Georgia, serif",
+                  color: "#0F5132",
+                }}
               >
-                <Icon
-                  className="h-5 w-5 sm:h-6 sm:w-6"
-                  style={{ color: mod.iconColor }}
-                />
-              </div>
-              {/* Label + Description */}
-              <div>
-                <p
-                  className="font-semibold text-sm sm:text-base font-body leading-tight"
-                  style={{ color: "#0F5132" }}
-                >
-                  {mod.label}
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 font-body leading-snug">
-                  {mod.description}
-                </p>
-              </div>
-            </motion.button>
-          );
-        })}
+                {mod.label}
+              </p>
+              <p className="text-[11px] text-muted-foreground font-body leading-snug">
+                {mod.description}
+              </p>
+            </div>
+          </motion.button>
+        ))}
       </motion.div>
 
       {/* Recent Orders */}
