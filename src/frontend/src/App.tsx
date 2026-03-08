@@ -61,6 +61,7 @@ import {
   QrCode,
   Receipt,
   RefreshCw,
+  Search,
   Settings,
   Shield,
   ShoppingCart,
@@ -2056,10 +2057,18 @@ function BillingScreen({
   onProceedToPayment: () => void;
   onBack: () => void;
 }) {
-  const filtered =
-    activeCategory === "All"
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filtered = (() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      // When searching, ignore category filter and search across all items
+      return menuItems.filter((m) => m.name.toLowerCase().includes(q));
+    }
+    return activeCategory === "All"
       ? menuItems
       : menuItems.filter((m) => m.category === activeCategory);
+  })();
 
   const totalItems = cart.reduce((sum, ci) => sum + ci.quantity, 0);
 
@@ -2088,15 +2097,34 @@ function BillingScreen({
           ))}
         </div>
 
+        {/* Search bar */}
+        <div className="px-4 pt-3 pb-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search food item..."
+              data-ocid="billing.search_input"
+              className="w-full pl-9 pr-4 py-2.5 rounded-full border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+            />
+          </div>
+        </div>
+
         {/* Menu grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
           {filtered.length === 0 ? (
             <div
               className="col-span-full text-center py-12 text-muted-foreground"
-              data-ocid="billing.empty_state"
+              data-ocid="billing.items.empty_state"
             >
               <UtensilsCrossed className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              <p>No items in this category</p>
+              <p>
+                {searchQuery.trim()
+                  ? "No items found"
+                  : "No items in this category"}
+              </p>
             </div>
           ) : (
             filtered.map((item, idx) => {
