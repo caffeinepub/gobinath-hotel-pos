@@ -3542,6 +3542,9 @@ function ReportsScreen({
   const [endDate, setEndDate] = useState(today.toISOString().slice(0, 10));
   const [activeTab, setActiveTab] = useState("analytics");
   const [branchFilter, setBranchFilter] = useState<"all" | "1" | "2">("all");
+  const [paymentModeFilter, setPaymentModeFilter] = useState<
+    "all" | "Cash" | "QR" | "Card"
+  >("all");
 
   const filteredOrders = useMemo(() => {
     const start = new Date(startDate).getTime();
@@ -3613,10 +3616,21 @@ function ReportsScreen({
 
   // Bill History filtered
   const billHistoryOrders = useMemo(() => {
-    const sorted = [...orders].sort((a, b) => b.createdAt - a.createdAt);
-    if (branchFilter === "all") return sorted;
-    return sorted.filter((o) => o.branchId === Number(branchFilter));
-  }, [orders, branchFilter]);
+    let sorted = [...orders].sort((a, b) => b.createdAt - a.createdAt);
+    if (branchFilter !== "all") {
+      sorted = sorted.filter((o) => o.branchId === Number(branchFilter));
+    }
+    if (paymentModeFilter !== "all") {
+      sorted = sorted.filter((o) => {
+        const pm = o.paymentMethod as string;
+        if (paymentModeFilter === "QR") {
+          return pm === "QR" || pm === "UPI";
+        }
+        return pm === paymentModeFilter;
+      });
+    }
+    return sorted;
+  }, [orders, branchFilter, paymentModeFilter]);
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-5">
@@ -3809,8 +3823,8 @@ function ReportsScreen({
 
         {/* Bill History Tab */}
         <TabsContent value="bill-history" className="space-y-4 mt-4">
-          {/* Branch filter */}
-          <div className="flex items-center gap-3">
+          {/* Filters row */}
+          <div className="flex flex-wrap items-center gap-3">
             <p className="text-sm font-semibold text-muted-foreground whitespace-nowrap">
               Filter by Branch:
             </p>
@@ -3832,6 +3846,29 @@ function ReportsScreen({
                 <SelectItem value="2">
                   Gobinath Hotel &#8211; JJ College
                 </SelectItem>
+              </SelectContent>
+            </Select>
+
+            <p className="text-sm font-semibold text-muted-foreground whitespace-nowrap">
+              Filter by Payment Mode:
+            </p>
+            <Select
+              value={paymentModeFilter}
+              onValueChange={(v) =>
+                setPaymentModeFilter(v as "all" | "Cash" | "QR" | "Card")
+              }
+            >
+              <SelectTrigger
+                className="h-9 rounded-xl flex-1 max-w-xs"
+                data-ocid="reports.payment_mode_filter.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Payments</SelectItem>
+                <SelectItem value="Cash">Cash</SelectItem>
+                <SelectItem value="QR">UPI</SelectItem>
+                <SelectItem value="Card">Card</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -5000,9 +5037,19 @@ function SettingsScreen({
 
   const branch = BRANCHES.find((b) => b.id === branchId);
 
+  // UPI ID validation
+  const upiTrimmed = upiId.replace(/\s/g, "");
+  const upiValid =
+    upiTrimmed.length > 0
+      ? /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/.test(upiTrimmed)
+      : null; // null = empty, true = valid, false = invalid
+
+  // GST number validation: valid only if exactly 15 chars
+  const gstNumberValid = gstForm.gstNumber.length === 15;
+
   // Preview UPI QR
-  const previewQr = upiId.trim()
-    ? `upi://pay?pa=${encodeURIComponent(upiId.trim())}&pn=${encodeURIComponent("Gobinath Hotel")}&am=1&cu=INR`
+  const previewQr = upiTrimmed
+    ? `upi://pay?pa=${encodeURIComponent(upiTrimmed)}&pn=${encodeURIComponent("Gobinath Hotel")}&am=1&cu=INR`
     : "";
 
   return (
@@ -5013,7 +5060,7 @@ function SettingsScreen({
       <p className="text-sm text-muted-foreground font-body">{branch?.name}</p>
 
       {/* ── UPI Payment Settings ─────────────────────────── */}
-      <div className="pos-card p-5 space-y-4">
+      <div className="pos-card p-4 space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-primary/12">
             <QrCode className="h-5 w-5 text-primary" />
@@ -5030,33 +5077,40 @@ function SettingsScreen({
 
         <div>
           <Label className="text-sm font-medium font-body">UPI ID</Label>
-          <Input
-            value={upiId}
-            onChange={(e) => setUpiId(e.target.value)}
-            placeholder="e.g. 9876543210@paytm or name@ybl"
-            className="mt-1.5 h-11 rounded-xl"
-            data-ocid="settings.upi_id.input"
-          />
-          <p className="text-xs text-muted-foreground mt-1 font-body">
-            Your UPI ID — payments will go to this account
-          </p>
+          <div className="relative mt-1.5">
+            <Input
+              value={upiId}
+              onChange={(e) => setUpiId(e.target.value.replace(/\s/g, ""))}
+              placeholder="e.g. 9876543210@paytm or name@ybl"
+              className="h-11 rounded-xl pr-9"
+              data-ocid="settings.upi_id.input"
+            />
+            {upiValid === true && (
+              <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-600 pointer-events-none" />
+            )}
+          </div>
+          {upiValid === false && (
+            <p className="text-xs text-red-500 mt-1 font-body">
+              Invalid UPI ID
+            </p>
+          )}
         </div>
 
         {/* Live QR preview */}
-        {previewQr && (
-          <div className="flex flex-col items-center gap-2 p-3 bg-primary/8 rounded-xl border border-primary/20">
+        {previewQr && upiValid === true && (
+          <div className="flex flex-col items-center gap-1.5 p-2 bg-primary/8 rounded-xl border border-primary/20">
             <p className="text-xs font-semibold text-primary font-body">
               QR Preview
             </p>
-            <div className="p-2 bg-white rounded-lg border border-primary/30">
+            <div className="p-1.5 bg-white rounded-lg border border-primary/30">
               <QRCodeSVG
                 value={previewQr}
-                size={100}
+                size={80}
                 level="M"
                 fgColor="#1E1E2E"
               />
             </div>
-            <p className="text-xs text-primary font-body">{upiId.trim()}</p>
+            <p className="text-xs text-primary font-body">{upiTrimmed}</p>
           </div>
         )}
 
@@ -5064,6 +5118,7 @@ function SettingsScreen({
           data-ocid="settings.save_upi_button"
           className="w-full h-11 font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-primary-foreground glow-btn"
           onClick={handleSaveUpi}
+          disabled={upiValid === false}
         >
           <Check className="h-4 w-4" />
           Save UPI Settings
@@ -5107,19 +5162,34 @@ function SettingsScreen({
           <Label className="text-sm font-medium font-body">
             GST Number (GSTIN)
           </Label>
-          <Input
-            value={gstForm.gstNumber}
-            onChange={(e) =>
-              setGstForm((f) => ({ ...f, gstNumber: e.target.value }))
-            }
-            placeholder="e.g. 33XXXXX1234X1ZX"
-            className="mt-1.5 h-11 rounded-xl"
-            disabled={!gstForm.enabled}
-            data-ocid="settings.gst_number.input"
-          />
-          <p className="text-xs text-muted-foreground mt-1 font-body">
-            Your 15-digit GST Identification Number
-          </p>
+          <div className="relative mt-1.5">
+            <Input
+              value={gstForm.gstNumber}
+              onChange={(e) => {
+                const cleaned = e.target.value
+                  .replace(/\s/g, "")
+                  .toUpperCase()
+                  .replace(/[^A-Z0-9]/g, "")
+                  .slice(0, 15);
+                setGstForm((f) => ({ ...f, gstNumber: cleaned }));
+              }}
+              placeholder="e.g. 33XXXXX1234X1ZX"
+              className="h-11 rounded-xl pr-9"
+              disabled={!gstForm.enabled}
+              maxLength={15}
+              data-ocid="settings.gst_number.input"
+            />
+            {gstForm.enabled && gstNumberValid && (
+              <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-600 pointer-events-none" />
+            )}
+          </div>
+          {gstForm.enabled &&
+            gstForm.gstNumber.length > 0 &&
+            !gstNumberValid && (
+              <p className="text-xs text-red-500 mt-1 font-body">
+                Invalid GST Number
+              </p>
+            )}
         </div>
 
         {/* GST Percentage */}
@@ -5175,6 +5245,9 @@ function SettingsScreen({
           data-ocid="settings.save_button"
           className="w-full h-11 font-semibold bg-primary hover:bg-primary/90 rounded-xl gap-2"
           onClick={handleSaveGst}
+          disabled={
+            gstForm.enabled && gstForm.gstNumber.length > 0 && !gstNumberValid
+          }
         >
           <Check className="h-4 w-4" />
           Save GST Settings
