@@ -102,7 +102,8 @@ type Screen =
   | "menu"
   | "reports"
   | "employees"
-  | "settings";
+  | "settings"
+  | "money-management";
 
 type Category = "Breakfast" | "Lunch" | "Dinner" | "Beverages" | "Snacks";
 type PaymentMethod = "Cash" | "QR";
@@ -154,11 +155,25 @@ interface Employee {
   name: string;
   mobile: string;
   address: string;
-  role: "Waiter" | "Cook" | "Cleaner" | "Manager" | "Cashier";
+  role: string;
   salaryType: "Monthly" | "Daily";
   salary: number;
   salaryPaid: boolean;
   advances: AdvanceRecord[];
+  dateOfJoin: string; // YYYY-MM-DD
+}
+
+interface SalaryPayment {
+  id: string;
+  employeeId: string;
+  type: "Salary" | "Advance";
+  salaryType: "Monthly" | "Daily";
+  month?: string; // e.g. "March 2026" - for Monthly
+  amount: number;
+  date: string; // YYYY-MM-DD
+  paymentMode: "Cash" | "Online";
+  notes?: string;
+  createdAt: number;
 }
 
 interface GSTSettings {
@@ -462,6 +477,7 @@ function initializeData() {
         salary: 8000,
         salaryPaid: true,
         advances: [],
+        dateOfJoin: "2025-01-01",
       },
       {
         id: generateId(),
@@ -483,6 +499,7 @@ function initializeData() {
             createdAt: Date.now(),
           },
         ],
+        dateOfJoin: "2025-01-01",
       },
       {
         id: generateId(),
@@ -496,6 +513,7 @@ function initializeData() {
         salary: 8000,
         salaryPaid: true,
         advances: [],
+        dateOfJoin: "2025-01-01",
       },
       {
         id: generateId(),
@@ -509,9 +527,13 @@ function initializeData() {
         salary: 10000,
         salaryPaid: true,
         advances: [],
+        dateOfJoin: "2025-01-01",
       },
     ];
     lsSet("pos_employees", employees);
+  }
+  if (!localStorage.getItem("pos_salary_payments")) {
+    lsSet("pos_salary_payments", []);
   }
   if (!localStorage.getItem("pos_gst_settings")) {
     const gst: GSTSettings[] = [
@@ -558,8 +580,12 @@ export default function App() {
       address: e.address ?? "",
       salaryType: (e.salaryType ?? "Monthly") as Employee["salaryType"],
       advances: e.advances ?? [],
+      dateOfJoin: e.dateOfJoin ?? "2025-01-01",
     }));
   });
+  const [salaryPayments, setSalaryPayments] = useState<SalaryPayment[]>(() =>
+    lsGet<SalaryPayment[]>("pos_salary_payments", []),
+  );
   const [gstSettings, setGstSettings] = useState<GSTSettings[]>(() =>
     lsGet<GSTSettings[]>("pos_gst_settings", [
       { branchId: 1, enabled: false, gstNumber: "", percentage: 5 },
@@ -606,6 +632,9 @@ export default function App() {
   useEffect(() => {
     lsSet("pos_employees", employees);
   }, [employees]);
+  useEffect(() => {
+    lsSet("pos_salary_payments", salaryPayments);
+  }, [salaryPayments]);
   useEffect(() => {
     lsSet("pos_gst_settings", gstSettings);
   }, [gstSettings]);
@@ -818,6 +847,12 @@ export default function App() {
           screen: "employees" as Screen,
         },
         {
+          id: "money-management",
+          label: "Money Management",
+          icon: Wallet,
+          screen: "money-management" as Screen,
+        },
+        {
           id: "settings",
           label: "Settings",
           icon: Settings,
@@ -837,6 +872,7 @@ export default function App() {
     "reports",
     "employees",
     "settings",
+    "money-management",
   ].includes(screen);
 
   // ── Render ──────────────────────────────────────────────────────────────
@@ -987,6 +1023,22 @@ export default function App() {
               onBack={() => setScreen("dashboard")}
             />
           )}
+
+          {screen === "money-management" && role === "owner" && (
+            <MoneyManagementScreen
+              employees={employees.filter((e) => e.branchId === activeBranch)}
+              allEmployees={employees}
+              salaryPayments={salaryPayments.filter((sp) => {
+                const emp = employees.find((e) => e.id === sp.employeeId);
+                return emp?.branchId === activeBranch;
+              })}
+              allSalaryPayments={salaryPayments}
+              branchId={activeBranch}
+              onUpdateEmployees={setEmployees}
+              onUpdateSalaryPayments={setSalaryPayments}
+              onBack={() => setScreen("dashboard")}
+            />
+          )}
         </AppShell>
       )}
     </div>
@@ -1038,6 +1090,7 @@ function AppShell({
     settings: "Settings",
     payment: "Payment",
     "bill-preview": "Bill Preview",
+    "money-management": "Money Management",
   };
 
   return (
@@ -1680,6 +1733,13 @@ const MODULE_CONFIG: {
     screen: "employees",
     ocid: "dashboard.employees.card",
     description: "Staff management",
+  },
+  {
+    label: "Money Management",
+    image: "/assets/generated/dashboard-billing.dim_400x400.png",
+    screen: "money-management",
+    ocid: "dashboard.money_management.card",
+    description: "Salary & payments",
   },
   {
     label: "Settings",
@@ -3615,6 +3675,14 @@ function ReportsScreen({
 function totalAdvanceTaken(emp: Employee): number {
   return emp.advances.reduce((s, a) => s + a.amount, 0);
 }
+function totalSalaryPaid(
+  employeeId: string,
+  payments: SalaryPayment[],
+): number {
+  return payments
+    .filter((p) => p.employeeId === employeeId && p.type === "Salary")
+    .reduce((s, p) => s + p.amount, 0);
+}
 function remainingBalance(emp: Employee): number {
   return emp.salary - totalAdvanceTaken(emp);
 }
@@ -3632,13 +3700,19 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-const ROLE_COLORS: Record<Employee["role"], string> = {
+const ROLE_COLOR_MAP: Record<string, string> = {
   Waiter: "bg-blue-900/50 text-blue-300 border-blue-700/50",
   Cook: "bg-orange-900/50 text-orange-300 border-orange-700/50",
   Cleaner: "bg-purple-900/50 text-purple-300 border-purple-700/50",
   Manager: "bg-emerald-900/50 text-emerald-300 border-emerald-700/50",
   Cashier: "bg-teal-900/50 text-teal-300 border-teal-700/50",
 };
+
+function getRoleColor(role: string): string {
+  return (
+    ROLE_COLOR_MAP[role] ?? "bg-gray-700/50 text-gray-300 border-gray-600/50"
+  );
+}
 
 const AVATAR_COLORS = [
   "bg-emerald-600",
@@ -3672,14 +3746,18 @@ function EmployeesScreen({
 
   const [form, setForm] = useState({
     name: "",
+    employeeId: "",
     mobile: "",
     address: "",
-    role: "Waiter" as Employee["role"],
+    role: "Waiter" as string,
+    customRole: "",
+    isCustomRole: false,
     salaryType: "Monthly" as Employee["salaryType"],
     salary: "",
     advanceAmount: "",
     advanceDate: todayStr(),
     salaryPaid: false,
+    dateOfJoin: todayStr(),
   });
 
   const [advanceForm, setAdvanceForm] = useState({
@@ -3690,51 +3768,68 @@ function EmployeesScreen({
 
   function openAdd() {
     setEditEmp(null);
+    const nextId = generateEmployeeId(allEmployees);
     setForm({
       name: "",
+      employeeId: nextId,
       mobile: "",
       address: "",
       role: "Waiter",
+      customRole: "",
+      isCustomRole: false,
       salaryType: "Monthly",
       salary: "",
       advanceAmount: "",
       advanceDate: todayStr(),
       salaryPaid: false,
+      dateOfJoin: todayStr(),
     });
     setShowModal(true);
   }
 
   function openEdit(emp: Employee) {
     setEditEmp(emp);
+    const knownRoles = ["Waiter", "Cook", "Cleaner", "Manager", "Cashier"];
+    const isCustom = !knownRoles.includes(emp.role);
     setForm({
       name: emp.name,
+      employeeId: emp.employeeId,
       mobile: emp.mobile,
       address: emp.address,
-      role: emp.role,
+      role: isCustom ? "__custom__" : emp.role,
+      customRole: isCustom ? emp.role : "",
+      isCustomRole: isCustom,
       salaryType: emp.salaryType,
       salary: String(emp.salary),
       advanceAmount: "",
       advanceDate: todayStr(),
       salaryPaid: emp.salaryPaid,
+      dateOfJoin: emp.dateOfJoin ?? todayStr(),
     });
     setShowModal(true);
   }
 
   function handleSave() {
     if (!form.name.trim() || !form.salary) return;
+    const resolvedRole =
+      form.role === "__custom__"
+        ? form.customRole.trim() || "Staff"
+        : form.role;
     if (editEmp) {
       onUpdate(
         allEmployees.map((e) =>
           e.id === editEmp.id
             ? {
                 ...e,
+                employeeId: form.employeeId.trim() || e.employeeId,
                 name: form.name,
                 mobile: form.mobile,
                 address: form.address,
-                role: form.role,
+                role: resolvedRole,
                 salaryType: form.salaryType,
                 salary: Number.parseFloat(form.salary),
                 salaryPaid: form.salaryPaid,
+                dateOfJoin: form.dateOfJoin,
               }
             : e,
         ),
@@ -3755,15 +3850,16 @@ function EmployeesScreen({
       const newEmp: Employee = {
         id: generateId(),
         branchId,
-        employeeId: generateEmployeeId(allEmployees),
+        employeeId: form.employeeId.trim() || generateEmployeeId(allEmployees),
         name: form.name,
         mobile: form.mobile,
         address: form.address,
-        role: form.role,
+        role: resolvedRole,
         salaryType: form.salaryType,
         salary: Number.parseFloat(form.salary),
         salaryPaid: form.salaryPaid,
         advances: initialAdvances,
+        dateOfJoin: form.dateOfJoin,
       };
       onUpdate([...allEmployees, newEmp]);
       toast.success("Employee added");
@@ -3929,7 +4025,7 @@ function EmployeesScreen({
                             {emp.employeeId}
                           </span>
                           <span
-                            className={`text-xs px-2 py-0.5 rounded-full border font-body font-medium ${ROLE_COLORS[emp.role]}`}
+                            className={`text-xs px-2 py-0.5 rounded-full border font-body font-medium ${getRoleColor(emp.role)}`}
                           >
                             {emp.role}
                           </span>
@@ -3976,14 +4072,24 @@ function EmployeesScreen({
                   </div>
 
                   {/* Contact info */}
-                  {emp.mobile && (
-                    <div className="flex items-center gap-1.5 mt-2 ml-15">
-                      <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                      <span className="text-xs font-body text-muted-foreground">
-                        {emp.mobile}
-                      </span>
-                    </div>
-                  )}
+                  <div className="mt-2 space-y-1 ml-[60px]">
+                    {emp.mobile && (
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        <span className="text-xs font-body text-muted-foreground">
+                          {emp.mobile}
+                        </span>
+                      </div>
+                    )}
+                    {emp.dateOfJoin && (
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        <span className="text-xs font-body text-muted-foreground">
+                          Joined: {formatDate(emp.dateOfJoin)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Salary Details */}
@@ -4136,16 +4242,19 @@ function EmployeesScreen({
             {/* Employee ID */}
             <div>
               <Label className="text-sm font-body font-medium text-foreground">
-                Employee ID
+                Employee ID{" "}
+                <span className="text-xs text-muted-foreground font-normal">
+                  (optional, auto-generated)
+                </span>
               </Label>
               <Input
-                value={
-                  editEmp
-                    ? editEmp.employeeId
-                    : generateEmployeeId(allEmployees)
+                value={form.employeeId}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, employeeId: e.target.value }))
                 }
-                readOnly
-                className="mt-1.5 h-11 rounded-xl bg-muted/60 font-mono text-sm cursor-default"
+                placeholder="e.g. EMP-001"
+                className="mt-1.5 h-11 rounded-xl font-mono text-sm"
+                data-ocid="employees.employee_id.input"
               />
             </div>
 
@@ -4206,9 +4315,22 @@ function EmployeesScreen({
               </Label>
               <Select
                 value={form.role}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, role: v as Employee["role"] }))
-                }
+                onValueChange={(v) => {
+                  if (v === "__custom__") {
+                    setForm((f) => ({
+                      ...f,
+                      role: "__custom__",
+                      isCustomRole: true,
+                    }));
+                  } else {
+                    setForm((f) => ({
+                      ...f,
+                      role: v,
+                      isCustomRole: false,
+                      customRole: "",
+                    }));
+                  }
+                }}
               >
                 <SelectTrigger
                   className="mt-1.5 h-11 rounded-xl"
@@ -4217,21 +4339,43 @@ function EmployeesScreen({
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(
-                    [
-                      "Waiter",
-                      "Cook",
-                      "Cleaner",
-                      "Manager",
-                      "Cashier",
-                    ] as Employee["role"][]
-                  ).map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
-                  ))}
+                  {["Waiter", "Cook", "Cleaner", "Manager", "Cashier"].map(
+                    (r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ),
+                  )}
+                  <SelectItem value="__custom__">Custom Role...</SelectItem>
                 </SelectContent>
               </Select>
+              {form.isCustomRole && (
+                <Input
+                  value={form.customRole}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, customRole: e.target.value }))
+                  }
+                  placeholder="Enter custom role (e.g. Driver, Security)"
+                  className="mt-2 h-11 rounded-xl"
+                  data-ocid="employees.custom_role.input"
+                />
+              )}
+            </div>
+
+            {/* Date of Join */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Date of Join
+              </Label>
+              <Input
+                type="date"
+                value={form.dateOfJoin}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, dateOfJoin: e.target.value }))
+                }
+                className="mt-1.5 h-11 rounded-xl"
+                data-ocid="employees.date_of_join.input"
+              />
             </div>
 
             {/* Salary Type */}
@@ -4800,6 +4944,1319 @@ function SettingsScreen({
           Save GST Settings
         </Button>
       </div>
+    </div>
+  );
+}
+
+// ── MoneyManagementScreen ──────────────────────────────────────────────────────
+
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function MoneyManagementScreen({
+  employees,
+  allEmployees,
+  salaryPayments,
+  allSalaryPayments,
+  branchId: _branchId,
+  onUpdateEmployees,
+  onUpdateSalaryPayments,
+  onBack: _onBack,
+}: {
+  employees: Employee[];
+  allEmployees: Employee[];
+  salaryPayments: SalaryPayment[];
+  allSalaryPayments: SalaryPayment[];
+  branchId: number;
+  onUpdateEmployees: (e: Employee[]) => void;
+  onUpdateSalaryPayments: (sp: SalaryPayment[]) => void;
+  onBack: () => void;
+}) {
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // ── Pay Salary form state ──
+  const [salaryForm, setSalaryForm] = useState({
+    employeeId: "",
+    month: `${MONTHS[new Date().getMonth()]} ${new Date().getFullYear()}`,
+    date: todayStr(),
+    amount: "",
+    paymentMode: "Cash" as "Cash" | "Online",
+  });
+
+  // ── Pay Advance form state ──
+  const [advanceForm, setAdvanceForm] = useState({
+    employeeId: "",
+    amount: "",
+    date: todayStr(),
+    paymentMode: "Cash" as "Cash" | "Online",
+    notes: "",
+  });
+
+  // ── History filter ──
+  const [historyEmpFilter, setHistoryEmpFilter] = useState("all");
+
+  // ── Report state ──
+  const [reportFrom, setReportFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [reportTo, setReportTo] = useState(todayStr());
+  const [reportEmpFilter, setReportEmpFilter] = useState("all");
+  const [reportGenerated, setReportGenerated] = useState(false);
+
+  // ── Overview stats ──
+  const today = todayStr();
+  const currentMonthStr = `${MONTHS[new Date().getMonth()]} ${new Date().getFullYear()}`;
+
+  const totalSalaryPaidToday = salaryPayments
+    .filter((p) => p.type === "Salary" && p.date === today)
+    .reduce((s, p) => s + p.amount, 0);
+
+  const totalSalaryPaidThisMonth = salaryPayments
+    .filter((p) => p.type === "Salary" && p.month === currentMonthStr)
+    .reduce((s, p) => s + p.amount, 0);
+
+  const totalAdvanceGiven = salaryPayments
+    .filter((p) => p.type === "Advance")
+    .reduce((s, p) => s + p.amount, 0);
+
+  const pendingSalaryBalance = employees.reduce((sum, emp) => {
+    const advTaken = totalAdvanceTaken(emp);
+    const salPaid = totalSalaryPaid(emp.id, salaryPayments);
+    const remaining = emp.salary - advTaken - salPaid;
+    return sum + (remaining > 0 ? remaining : 0);
+  }, 0);
+
+  // ── Pay Salary submit ──
+  function handleRecordSalary() {
+    const emp = employees.find((e) => e.id === salaryForm.employeeId);
+    if (!emp || !salaryForm.amount) return;
+    const payment: SalaryPayment = {
+      id: generateId(),
+      employeeId: emp.id,
+      type: "Salary",
+      salaryType: emp.salaryType,
+      month: emp.salaryType === "Monthly" ? salaryForm.month : undefined,
+      amount: Number.parseFloat(salaryForm.amount),
+      date: salaryForm.date,
+      paymentMode: salaryForm.paymentMode,
+      createdAt: Date.now(),
+    };
+    onUpdateSalaryPayments([...allSalaryPayments, payment]);
+    toast.success(`Salary ₹${salaryForm.amount} recorded for ${emp.name}`);
+    setSalaryForm((f) => ({ ...f, amount: "", employeeId: "" }));
+  }
+
+  // ── Pay Advance submit ──
+  function handleRecordAdvance() {
+    const emp = employees.find((e) => e.id === advanceForm.employeeId);
+    if (!emp || !advanceForm.amount) return;
+    const amt = Number.parseFloat(advanceForm.amount);
+
+    // Add to SalaryPayment ledger
+    const payment: SalaryPayment = {
+      id: generateId(),
+      employeeId: emp.id,
+      type: "Advance",
+      salaryType: emp.salaryType,
+      amount: amt,
+      date: advanceForm.date,
+      paymentMode: advanceForm.paymentMode,
+      notes: advanceForm.notes,
+      createdAt: Date.now(),
+    };
+    onUpdateSalaryPayments([...allSalaryPayments, payment]);
+
+    // Also add to employee.advances for backward compat
+    const newAdvanceRecord: AdvanceRecord = {
+      id: generateId(),
+      amount: amt,
+      date: advanceForm.date,
+      reason: advanceForm.notes,
+      createdAt: Date.now(),
+    };
+    onUpdateEmployees(
+      allEmployees.map((e) =>
+        e.id === emp.id
+          ? { ...e, advances: [...e.advances, newAdvanceRecord] }
+          : e,
+      ),
+    );
+
+    toast.success(`Advance ₹${advanceForm.amount} recorded for ${emp.name}`);
+    setAdvanceForm((f) => ({ ...f, amount: "", employeeId: "", notes: "" }));
+  }
+
+  // ── Report data ──
+  const reportPayments = useMemo(() => {
+    const from = new Date(reportFrom).getTime();
+    const to = new Date(reportTo).getTime() + 86400000;
+    return salaryPayments.filter((p) => {
+      const ts = new Date(p.date).getTime();
+      const matchDate = ts >= from && ts < to;
+      const matchEmp =
+        reportEmpFilter === "all" || p.employeeId === reportEmpFilter;
+      return matchDate && matchEmp;
+    });
+  }, [salaryPayments, reportFrom, reportTo, reportEmpFilter]);
+
+  // Build per-employee report rows
+  const reportRows = useMemo(() => {
+    const empMap = new Map<string, Employee>();
+    for (const e of employees) empMap.set(e.id, e);
+
+    const rows: {
+      emp: Employee;
+      salaryPaidInRange: number;
+      advancePaidInRange: number;
+      totalAdvance: number;
+      remaining: number;
+      payments: SalaryPayment[];
+    }[] = [];
+
+    const seenEmps = new Set<string>();
+    for (const p of reportPayments) {
+      seenEmps.add(p.employeeId);
+    }
+
+    for (const empId of seenEmps) {
+      const emp = empMap.get(empId);
+      if (!emp) continue;
+      const empPayments = reportPayments.filter((p) => p.employeeId === empId);
+      const salaryPaidInRange = empPayments
+        .filter((p) => p.type === "Salary")
+        .reduce((s, p) => s + p.amount, 0);
+      const advancePaidInRange = empPayments
+        .filter((p) => p.type === "Advance")
+        .reduce((s, p) => s + p.amount, 0);
+      const totalAdv = totalAdvanceTaken(emp);
+      const totalSalPaid = totalSalaryPaid(emp.id, salaryPayments);
+      const remaining = emp.salary - totalAdv - totalSalPaid;
+      rows.push({
+        emp,
+        salaryPaidInRange,
+        advancePaidInRange,
+        totalAdvance: totalAdv,
+        remaining,
+        payments: empPayments,
+      });
+    }
+    return rows;
+  }, [reportPayments, employees, salaryPayments]);
+
+  // ── CSV Download ──
+  function downloadCSV() {
+    const headers = [
+      "Employee Name",
+      "Salary Type",
+      "Salary Amount",
+      "Payment Type",
+      "Amount",
+      "Month",
+      "Payment Date",
+      "Payment Mode",
+      "Notes",
+    ];
+    const rows: string[][] = [];
+    for (const p of reportPayments) {
+      const emp = employees.find((e) => e.id === p.employeeId);
+      if (!emp) continue;
+      rows.push([
+        emp.name,
+        emp.salaryType,
+        String(emp.salary),
+        p.type,
+        String(p.amount),
+        p.month ?? "",
+        p.date,
+        p.paymentMode,
+        p.notes ?? "",
+      ]);
+    }
+    const csv = [headers, ...rows]
+      .map((r) => r.map((c) => `"${c}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `salary-report-${reportFrom}-to-${reportTo}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Print / PDF ──
+  function downloadPDF() {
+    window.print();
+  }
+
+  // ── History list ──
+  const historyPayments = useMemo(() => {
+    const list =
+      historyEmpFilter === "all"
+        ? salaryPayments
+        : salaryPayments.filter((p) => p.employeeId === historyEmpFilter);
+    return [...list].sort((a, b) => b.createdAt - a.createdAt);
+  }, [salaryPayments, historyEmpFilter]);
+
+  const selectedSalaryEmp = employees.find(
+    (e) => e.id === salaryForm.employeeId,
+  );
+  const selectedAdvanceEmp = employees.find(
+    (e) => e.id === advanceForm.employeeId,
+  );
+
+  // Live balance preview for advance
+  const advancePreviewBalance = selectedAdvanceEmp
+    ? selectedAdvanceEmp.salary -
+      totalAdvanceTaken(selectedAdvanceEmp) -
+      totalSalaryPaid(selectedAdvanceEmp.id, salaryPayments) -
+      (Number.parseFloat(advanceForm.amount) || 0)
+    : null;
+
+  return (
+    <div
+      className="max-w-4xl mx-auto p-4 space-y-5"
+      data-ocid="money_mgmt.page"
+    >
+      <div className="flex items-center gap-3">
+        <h2 className="font-display text-2xl font-bold">Money Management</h2>
+      </div>
+
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        data-ocid="money_mgmt.tab"
+      >
+        <TabsList className="grid grid-cols-5 w-full rounded-xl h-auto">
+          <TabsTrigger
+            value="overview"
+            data-ocid="money_mgmt.overview_tab"
+            className="rounded-lg text-xs sm:text-sm py-2"
+          >
+            Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="pay-salary"
+            data-ocid="money_mgmt.pay_salary_tab"
+            className="rounded-lg text-xs sm:text-sm py-2"
+          >
+            Pay Salary
+          </TabsTrigger>
+          <TabsTrigger
+            value="pay-advance"
+            data-ocid="money_mgmt.pay_advance_tab"
+            className="rounded-lg text-xs sm:text-sm py-2"
+          >
+            Advance
+          </TabsTrigger>
+          <TabsTrigger
+            value="history"
+            data-ocid="money_mgmt.history_tab"
+            className="rounded-lg text-xs sm:text-sm py-2"
+          >
+            History
+          </TabsTrigger>
+          <TabsTrigger
+            value="report"
+            data-ocid="money_mgmt.report_tab"
+            className="rounded-lg text-xs sm:text-sm py-2"
+          >
+            Report
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ── Tab 1: Overview ── */}
+        <TabsContent value="overview" className="space-y-5 mt-4">
+          {/* Stats */}
+          <div
+            className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3"
+            data-ocid="money_mgmt.stats_section"
+          >
+            <div
+              className="pos-card p-4 text-center"
+              data-ocid="money_mgmt.total_employees.card"
+            >
+              <div className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center bg-primary/15">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-xl font-bold font-display text-primary">
+                {employees.length}
+              </p>
+              <p className="text-xs text-muted-foreground font-body mt-0.5">
+                Total Employees
+              </p>
+            </div>
+            <div
+              className="pos-card p-4 text-center"
+              data-ocid="money_mgmt.today_salary.card"
+            >
+              <div className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center bg-primary/15">
+                <IndianRupee className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-xl font-bold font-display text-primary">
+                ₹{totalSalaryPaidToday.toLocaleString("en-IN")}
+              </p>
+              <p className="text-xs text-muted-foreground font-body mt-0.5">
+                Paid Today
+              </p>
+            </div>
+            <div
+              className="pos-card p-4 text-center"
+              data-ocid="money_mgmt.month_salary.card"
+            >
+              <div className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center bg-primary/15">
+                <TrendingUp className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-xl font-bold font-display text-primary">
+                ₹{totalSalaryPaidThisMonth.toLocaleString("en-IN")}
+              </p>
+              <p className="text-xs text-muted-foreground font-body mt-0.5">
+                Paid This Month
+              </p>
+            </div>
+            <div
+              className="pos-card p-4 text-center"
+              data-ocid="money_mgmt.advance_given.card"
+            >
+              <div className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center bg-accent/15">
+                <Wallet className="h-5 w-5 text-accent" />
+              </div>
+              <p className="text-xl font-bold font-display text-accent">
+                ₹{totalAdvanceGiven.toLocaleString("en-IN")}
+              </p>
+              <p className="text-xs text-muted-foreground font-body mt-0.5">
+                Total Advance
+              </p>
+            </div>
+            <div
+              className="pos-card p-4 text-center"
+              data-ocid="money_mgmt.pending_balance.card"
+            >
+              <div className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center bg-destructive/15">
+                <Clock className="h-5 w-5 text-destructive" />
+              </div>
+              <p className="text-xl font-bold font-display text-destructive">
+                ₹{pendingSalaryBalance.toLocaleString("en-IN")}
+              </p>
+              <p className="text-xs text-muted-foreground font-body mt-0.5">
+                Pending Balance
+              </p>
+            </div>
+          </div>
+
+          {/* Employee salary table */}
+          {employees.length === 0 ? (
+            <div
+              className="pos-card p-12 text-center text-muted-foreground"
+              data-ocid="money_mgmt.employees_table.empty_state"
+            >
+              <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p>No employees in this branch</p>
+            </div>
+          ) : (
+            <div
+              className="pos-card overflow-hidden"
+              data-ocid="money_mgmt.employees_table"
+            >
+              <div className="px-4 py-3 border-b border-border">
+                <p className="font-semibold text-sm">
+                  Employee Salary Overview
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-secondary/30">
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Employee
+                      </th>
+                      <th className="text-center px-3 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Type
+                      </th>
+                      <th className="text-right px-3 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Salary
+                      </th>
+                      <th className="text-right px-3 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Advance
+                      </th>
+                      <th className="text-right px-3 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Paid
+                      </th>
+                      <th className="text-right px-3 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Remaining
+                      </th>
+                      <th className="text-center px-3 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employees.map((emp, idx) => {
+                      const advTaken = totalAdvanceTaken(emp);
+                      const salPaid = totalSalaryPaid(emp.id, salaryPayments);
+                      const remaining = emp.salary - advTaken - salPaid;
+                      const isPaid = remaining <= 0;
+                      return (
+                        <tr
+                          key={emp.id}
+                          data-ocid={`money_mgmt.employee_row.${idx + 1}`}
+                          className="border-b border-border/50 last:border-0 hover:bg-secondary/20 transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <p className="font-semibold text-foreground">
+                              {emp.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {emp.employeeId}
+                            </p>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full border font-medium ${emp.salaryType === "Monthly" ? "bg-blue-900/40 text-blue-300 border-blue-700/40" : "bg-orange-900/40 text-orange-300 border-orange-700/40"}`}
+                            >
+                              {emp.salaryType}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-right font-semibold text-primary">
+                            ₹{emp.salary.toLocaleString("en-IN")}
+                          </td>
+                          <td className="px-3 py-3 text-right text-accent font-semibold">
+                            {advTaken > 0
+                              ? `−₹${advTaken.toLocaleString("en-IN")}`
+                              : "—"}
+                          </td>
+                          <td className="px-3 py-3 text-right text-primary font-semibold">
+                            {salPaid > 0
+                              ? `₹${salPaid.toLocaleString("en-IN")}`
+                              : "—"}
+                          </td>
+                          <td className="px-3 py-3 text-right font-bold">
+                            <span
+                              className={
+                                remaining <= 0 ? "text-primary" : "text-accent"
+                              }
+                            >
+                              ₹{Math.max(remaining, 0).toLocaleString("en-IN")}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span
+                              className={`text-xs px-2.5 py-1 rounded-full font-semibold border ${isPaid ? "bg-green-900/50 text-green-300 border-green-700/50" : "bg-orange-900/50 text-orange-300 border-orange-700/50"}`}
+                            >
+                              {isPaid ? "Paid" : "Pending"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ── Tab 2: Pay Salary ── */}
+        <TabsContent value="pay-salary" className="space-y-5 mt-4">
+          <div
+            className="pos-card p-5 space-y-5 max-w-lg mx-auto"
+            data-ocid="money_mgmt.pay_salary.card"
+          >
+            <div className="flex items-center gap-3 pb-2 border-b border-border">
+              <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
+                <IndianRupee className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-display font-bold text-base">
+                  Record Salary Payment
+                </p>
+                <p className="text-xs text-muted-foreground font-body">
+                  Track salary paid to employee
+                </p>
+              </div>
+            </div>
+
+            {/* Employee */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Employee <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={salaryForm.employeeId}
+                onValueChange={(v) => {
+                  const emp = employees.find((e) => e.id === v);
+                  setSalaryForm((f) => ({
+                    ...f,
+                    employeeId: v,
+                    amount: emp ? String(emp.salary) : "",
+                  }));
+                }}
+              >
+                <SelectTrigger
+                  className="mt-1.5 h-11 rounded-xl"
+                  data-ocid="money_mgmt.salary_employee.select"
+                >
+                  <SelectValue placeholder="Select employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.name} ({emp.salaryType})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Month (Monthly only) */}
+            {selectedSalaryEmp?.salaryType === "Monthly" && (
+              <div>
+                <Label className="text-sm font-body font-medium text-foreground">
+                  Month
+                </Label>
+                <Select
+                  value={salaryForm.month}
+                  onValueChange={(v) =>
+                    setSalaryForm((f) => ({ ...f, month: v }))
+                  }
+                >
+                  <SelectTrigger
+                    className="mt-1.5 h-11 rounded-xl"
+                    data-ocid="money_mgmt.salary_month.select"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map((m) => (
+                      <SelectItem
+                        key={m}
+                        value={`${m} ${new Date().getFullYear()}`}
+                      >
+                        {m} {new Date().getFullYear()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Payment Date */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Payment Date
+              </Label>
+              <Input
+                type="date"
+                value={salaryForm.date}
+                onChange={(e) =>
+                  setSalaryForm((f) => ({ ...f, date: e.target.value }))
+                }
+                className="mt-1.5 h-11 rounded-xl"
+                data-ocid="money_mgmt.salary_date.input"
+              />
+            </div>
+
+            {/* Amount */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Amount (₹) <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={salaryForm.amount}
+                onChange={(e) =>
+                  setSalaryForm((f) => ({ ...f, amount: e.target.value }))
+                }
+                placeholder={
+                  selectedSalaryEmp ? `e.g. ${selectedSalaryEmp.salary}` : "0"
+                }
+                className="mt-1.5 h-11 rounded-xl"
+                data-ocid="money_mgmt.salary_amount.input"
+              />
+            </div>
+
+            {/* Payment Mode */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground mb-2 block">
+                Payment Mode
+              </Label>
+              <div className="grid grid-cols-2 gap-3">
+                {(["Cash", "Online"] as const).map((mode) => (
+                  <button
+                    type="button"
+                    key={mode}
+                    data-ocid={`money_mgmt.salary_mode_${mode.toLowerCase()}.toggle`}
+                    onClick={() =>
+                      setSalaryForm((f) => ({ ...f, paymentMode: mode }))
+                    }
+                    className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${salaryForm.paymentMode === mode ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/50"}`}
+                  >
+                    {mode === "Cash" ? (
+                      <Banknote className="h-4 w-4" />
+                    ) : (
+                      <QrCode className="h-4 w-4" />
+                    )}
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Balance preview */}
+            {selectedSalaryEmp && salaryForm.amount && (
+              <div className="bg-primary/8 border border-primary/20 rounded-xl p-4 space-y-2 text-sm font-body">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>{selectedSalaryEmp.salaryType} Salary</span>
+                  <span className="font-semibold text-foreground">
+                    ₹{selectedSalaryEmp.salary.toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <div className="flex justify-between text-accent">
+                  <span>Total Advance</span>
+                  <span>
+                    −₹
+                    {totalAdvanceTaken(selectedSalaryEmp).toLocaleString(
+                      "en-IN",
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between text-primary">
+                  <span>This Payment</span>
+                  <span>
+                    −₹
+                    {(Number.parseFloat(salaryForm.amount) || 0).toLocaleString(
+                      "en-IN",
+                    )}
+                  </span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-bold">
+                  <span>Remaining</span>
+                  <span
+                    className={
+                      selectedSalaryEmp.salary -
+                        totalAdvanceTaken(selectedSalaryEmp) -
+                        totalSalaryPaid(selectedSalaryEmp.id, salaryPayments) -
+                        (Number.parseFloat(salaryForm.amount) || 0) >=
+                      0
+                        ? "text-primary"
+                        : "text-destructive"
+                    }
+                  >
+                    ₹
+                    {(
+                      selectedSalaryEmp.salary -
+                      totalAdvanceTaken(selectedSalaryEmp) -
+                      totalSalaryPaid(selectedSalaryEmp.id, salaryPayments) -
+                      (Number.parseFloat(salaryForm.amount) || 0)
+                    ).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <Button
+              data-ocid="money_mgmt.record_salary.submit_button"
+              className="w-full h-12 font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground glow-btn gap-2"
+              disabled={!salaryForm.employeeId || !salaryForm.amount}
+              onClick={handleRecordSalary}
+            >
+              <Check className="h-5 w-5" />
+              Record Salary Payment
+            </Button>
+          </div>
+        </TabsContent>
+
+        {/* ── Tab 3: Pay Advance ── */}
+        <TabsContent value="pay-advance" className="space-y-5 mt-4">
+          <div
+            className="pos-card p-5 space-y-5 max-w-lg mx-auto"
+            data-ocid="money_mgmt.pay_advance.card"
+          >
+            <div className="flex items-center gap-3 pb-2 border-b border-border">
+              <div className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center">
+                <Wallet className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <p className="font-display font-bold text-base">
+                  Record Advance Payment
+                </p>
+                <p className="text-xs text-muted-foreground font-body">
+                  Track advance given to employee
+                </p>
+              </div>
+            </div>
+
+            {/* Employee */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Employee <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={advanceForm.employeeId}
+                onValueChange={(v) =>
+                  setAdvanceForm((f) => ({ ...f, employeeId: v }))
+                }
+              >
+                <SelectTrigger
+                  className="mt-1.5 h-11 rounded-xl"
+                  data-ocid="money_mgmt.advance_employee.select"
+                >
+                  <SelectValue placeholder="Select employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.name} ({emp.salaryType})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Advance Amount */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Advance Amount (₹) <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={advanceForm.amount}
+                onChange={(e) =>
+                  setAdvanceForm((f) => ({ ...f, amount: e.target.value }))
+                }
+                placeholder="e.g. 2000"
+                className="mt-1.5 h-11 rounded-xl"
+                data-ocid="money_mgmt.advance_amount.input"
+              />
+            </div>
+
+            {/* Date */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Advance Date
+              </Label>
+              <Input
+                type="date"
+                value={advanceForm.date}
+                onChange={(e) =>
+                  setAdvanceForm((f) => ({ ...f, date: e.target.value }))
+                }
+                className="mt-1.5 h-11 rounded-xl"
+                data-ocid="money_mgmt.advance_date.input"
+              />
+            </div>
+
+            {/* Payment Mode */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground mb-2 block">
+                Payment Mode
+              </Label>
+              <div className="grid grid-cols-2 gap-3">
+                {(["Cash", "Online"] as const).map((mode) => (
+                  <button
+                    type="button"
+                    key={mode}
+                    data-ocid={`money_mgmt.advance_mode_${mode.toLowerCase()}.toggle`}
+                    onClick={() =>
+                      setAdvanceForm((f) => ({ ...f, paymentMode: mode }))
+                    }
+                    className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${advanceForm.paymentMode === mode ? "border-accent bg-accent/20 text-accent" : "border-border bg-card text-foreground hover:border-accent/50"}`}
+                  >
+                    {mode === "Cash" ? (
+                      <Banknote className="h-4 w-4" />
+                    ) : (
+                      <QrCode className="h-4 w-4" />
+                    )}
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Notes{" "}
+                <span className="text-xs text-muted-foreground font-normal">
+                  (optional)
+                </span>
+              </Label>
+              <Textarea
+                value={advanceForm.notes}
+                onChange={(e) =>
+                  setAdvanceForm((f) => ({ ...f, notes: e.target.value }))
+                }
+                placeholder="e.g. Medical emergency, Festival advance"
+                rows={2}
+                className="mt-1.5 rounded-xl resize-none"
+                data-ocid="money_mgmt.advance_notes.textarea"
+              />
+            </div>
+
+            {/* Live balance preview */}
+            {selectedAdvanceEmp && advanceForm.amount && (
+              <div className="bg-accent/8 border border-accent/20 rounded-xl p-4 space-y-2 text-sm font-body">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>{selectedAdvanceEmp.salaryType} Salary</span>
+                  <span className="font-semibold text-foreground">
+                    ₹{selectedAdvanceEmp.salary.toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <div className="flex justify-between text-destructive">
+                  <span>Total Advance So Far</span>
+                  <span>
+                    −₹
+                    {totalAdvanceTaken(selectedAdvanceEmp).toLocaleString(
+                      "en-IN",
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between text-destructive">
+                  <span>New Advance</span>
+                  <span>
+                    −₹
+                    {(
+                      Number.parseFloat(advanceForm.amount) || 0
+                    ).toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-bold">
+                  <span>Balance After</span>
+                  <span
+                    className={
+                      advancePreviewBalance !== null &&
+                      advancePreviewBalance >= 0
+                        ? "text-primary"
+                        : "text-destructive"
+                    }
+                  >
+                    ₹{(advancePreviewBalance ?? 0).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <Button
+              data-ocid="money_mgmt.record_advance.submit_button"
+              className="w-full h-12 font-semibold rounded-xl gap-2"
+              style={{ background: "#FF7A45", color: "white" }}
+              disabled={!advanceForm.employeeId || !advanceForm.amount}
+              onClick={handleRecordAdvance}
+            >
+              <Wallet className="h-5 w-5" />
+              Record Advance
+            </Button>
+          </div>
+        </TabsContent>
+
+        {/* ── Tab 4: History ── */}
+        <TabsContent value="history" className="space-y-4 mt-4">
+          {/* Employee filter */}
+          <div className="flex items-center gap-3">
+            <Label className="text-sm font-semibold text-muted-foreground whitespace-nowrap">
+              Employee:
+            </Label>
+            <Select
+              value={historyEmpFilter}
+              onValueChange={setHistoryEmpFilter}
+            >
+              <SelectTrigger
+                className="h-9 rounded-xl flex-1 max-w-xs"
+                data-ocid="money_mgmt.history_filter.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Employees</SelectItem>
+                {employees.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.id}>
+                    {emp.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {historyPayments.length === 0 ? (
+            <div
+              className="pos-card p-12 text-center text-muted-foreground"
+              data-ocid="money_mgmt.history.empty_state"
+            >
+              <History className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="font-semibold">No payment records</p>
+              <p className="text-sm mt-1 opacity-70">
+                Record salary or advance payments to see history here
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2" data-ocid="money_mgmt.history.list">
+              {historyPayments.map((p, idx) => {
+                const emp = employees.find((e) => e.id === p.employeeId);
+                return (
+                  <div
+                    key={p.id}
+                    data-ocid={`money_mgmt.history.item.${idx + 1}`}
+                    className="pos-card p-4 flex items-start gap-4"
+                  >
+                    {/* Type indicator */}
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${p.type === "Salary" ? "bg-green-900/40" : "bg-red-900/40"}`}
+                    >
+                      {p.type === "Salary" ? (
+                        <IndianRupee className="h-4 w-4 text-green-300" />
+                      ) : (
+                        <Wallet className="h-4 w-4 text-red-300" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-foreground text-sm">
+                          {emp?.name ?? "Unknown"}
+                        </span>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${p.type === "Salary" ? "bg-green-900/50 text-green-300 border-green-700/50" : "bg-red-900/50 text-red-300 border-red-700/50"}`}
+                        >
+                          {p.type}
+                        </span>
+                        <span className="text-xs text-muted-foreground border border-border/50 px-1.5 py-0.5 rounded">
+                          {p.paymentMode}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-xs text-muted-foreground font-body">
+                          {formatDate(p.date)}
+                          {p.type === "Salary" && p.month && ` · ${p.month}`}
+                        </span>
+                      </div>
+                      {p.notes && (
+                        <p className="text-xs text-muted-foreground mt-0.5 italic font-body">
+                          {p.notes}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p
+                        className={`font-bold text-sm ${p.type === "Salary" ? "text-primary" : "text-destructive"}`}
+                      >
+                        {p.type === "Salary" ? "+" : "−"}₹
+                        {p.amount.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ── Tab 5: Report ── */}
+        <TabsContent value="report" className="space-y-5 mt-4">
+          {/* Filters */}
+          <div
+            className="pos-card p-4 space-y-4"
+            data-ocid="money_mgmt.report_filters.card"
+          >
+            <p className="font-semibold text-sm">Report Filters</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">From</Label>
+                <Input
+                  type="date"
+                  value={reportFrom}
+                  onChange={(e) => setReportFrom(e.target.value)}
+                  className="mt-1 h-10"
+                  data-ocid="money_mgmt.report_from.input"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">To</Label>
+                <Input
+                  type="date"
+                  value={reportTo}
+                  onChange={(e) => setReportTo(e.target.value)}
+                  className="mt-1 h-10"
+                  data-ocid="money_mgmt.report_to.input"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Employee</Label>
+              <Select
+                value={reportEmpFilter}
+                onValueChange={setReportEmpFilter}
+              >
+                <SelectTrigger
+                  className="mt-1 h-10 rounded-xl"
+                  data-ocid="money_mgmt.report_emp_filter.select"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Employees</SelectItem>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              data-ocid="money_mgmt.generate_report.button"
+              className="w-full h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+              onClick={() => setReportGenerated(true)}
+            >
+              <TrendingUp className="h-4 w-4" />
+              Generate Report
+            </Button>
+          </div>
+
+          {/* Report table */}
+          {reportGenerated && (
+            <>
+              {/* Download buttons */}
+              <div className="flex gap-3">
+                <Button
+                  data-ocid="money_mgmt.download_csv.button"
+                  variant="outline"
+                  className="flex-1 h-11 rounded-xl font-semibold border-primary text-primary gap-2"
+                  onClick={downloadCSV}
+                >
+                  <TrendingUp className="h-4 w-4" />
+                  Download CSV
+                </Button>
+                <Button
+                  data-ocid="money_mgmt.download_pdf.button"
+                  variant="outline"
+                  className="flex-1 h-11 rounded-xl font-semibold border-accent text-accent gap-2"
+                  onClick={downloadPDF}
+                >
+                  <Printer className="h-4 w-4" />
+                  Download PDF
+                </Button>
+              </div>
+
+              {reportPayments.length === 0 ? (
+                <div
+                  className="pos-card p-12 text-center text-muted-foreground"
+                  data-ocid="money_mgmt.report.empty_state"
+                >
+                  <BarChart2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                  <p>No payments found for selected filters</p>
+                </div>
+              ) : (
+                <>
+                  {/* Summary per employee */}
+                  <div className="space-y-3" data-ocid="money_mgmt.report.list">
+                    {reportRows.map((row, idx) => (
+                      <div
+                        key={row.emp.id}
+                        data-ocid={`money_mgmt.report_row.${idx + 1}`}
+                        className="pos-card overflow-hidden"
+                      >
+                        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold text-foreground">
+                              {row.emp.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {row.emp.employeeId} · {row.emp.salaryType} Salary
+                              · ₹{row.emp.salary.toLocaleString("en-IN")}/month
+                            </p>
+                          </div>
+                          <span
+                            className={`text-xs px-2.5 py-1 rounded-full font-semibold border ${row.remaining <= 0 ? "bg-green-900/50 text-green-300 border-green-700/50" : "bg-orange-900/50 text-orange-300 border-orange-700/50"}`}
+                          >
+                            {row.remaining <= 0 ? "Paid" : "Pending"}
+                          </span>
+                        </div>
+                        <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              Total Advance
+                            </p>
+                            <p className="font-bold text-accent">
+                              ₹{row.totalAdvance.toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              Salary Paid
+                            </p>
+                            <p className="font-bold text-primary">
+                              ₹{row.salaryPaidInRange.toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              Advance (Period)
+                            </p>
+                            <p className="font-bold text-destructive">
+                              ₹{row.advancePaidInRange.toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              Remaining
+                            </p>
+                            <p
+                              className={`font-bold ${row.remaining <= 0 ? "text-primary" : "text-accent"}`}
+                            >
+                              ₹
+                              {Math.max(row.remaining, 0).toLocaleString(
+                                "en-IN",
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        {/* Payment rows */}
+                        <div className="px-4 pb-3 space-y-1.5">
+                          {row.payments.map((p) => (
+                            <div
+                              key={p.id}
+                              className="flex items-center justify-between text-xs font-body bg-secondary/30 rounded-lg px-3 py-2"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`px-1.5 py-0.5 rounded font-semibold ${p.type === "Salary" ? "bg-green-900/50 text-green-300" : "bg-red-900/50 text-red-300"}`}
+                                >
+                                  {p.type}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {formatDate(p.date)}
+                                </span>
+                                {p.month && (
+                                  <span className="text-muted-foreground">
+                                    · {p.month}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-muted-foreground">
+                                  {p.paymentMode}
+                                </span>
+                                <span
+                                  className={`font-bold ${p.type === "Salary" ? "text-primary" : "text-destructive"}`}
+                                >
+                                  ₹{p.amount.toLocaleString("en-IN")}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Print-only area */}
+                  <div
+                    id="money-report-print-area"
+                    className="hidden print:block font-mono text-xs p-4"
+                  >
+                    <h1 className="font-bold text-lg mb-2">
+                      Gobinath Hotel – Salary Report
+                    </h1>
+                    <p className="mb-1">
+                      Period: {reportFrom} to {reportTo}
+                    </p>
+                    <p className="mb-4">
+                      Generated: {new Date().toLocaleDateString("en-IN")}
+                    </p>
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr>
+                          <th className="border border-black px-2 py-1 text-left">
+                            Employee
+                          </th>
+                          <th className="border border-black px-2 py-1">
+                            Type
+                          </th>
+                          <th className="border border-black px-2 py-1">
+                            Salary
+                          </th>
+                          <th className="border border-black px-2 py-1">
+                            Advance
+                          </th>
+                          <th className="border border-black px-2 py-1">
+                            Paid
+                          </th>
+                          <th className="border border-black px-2 py-1">
+                            Remaining
+                          </th>
+                          <th className="border border-black px-2 py-1">
+                            Mode
+                          </th>
+                          <th className="border border-black px-2 py-1">
+                            Date
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reportPayments.map((p) => {
+                          const emp = employees.find(
+                            (e) => e.id === p.employeeId,
+                          );
+                          const advTaken = emp ? totalAdvanceTaken(emp) : 0;
+                          const salPaid = emp
+                            ? totalSalaryPaid(emp.id, salaryPayments)
+                            : 0;
+                          const rem = emp ? emp.salary - advTaken - salPaid : 0;
+                          return (
+                            <tr key={p.id}>
+                              <td className="border border-black px-2 py-1">
+                                {emp?.name}
+                              </td>
+                              <td className="border border-black px-2 py-1 text-center">
+                                {p.type}
+                              </td>
+                              <td className="border border-black px-2 py-1 text-right">
+                                ₹{emp?.salary.toLocaleString("en-IN")}
+                              </td>
+                              <td className="border border-black px-2 py-1 text-right">
+                                ₹{advTaken.toLocaleString("en-IN")}
+                              </td>
+                              <td className="border border-black px-2 py-1 text-right">
+                                ₹{salPaid.toLocaleString("en-IN")}
+                              </td>
+                              <td className="border border-black px-2 py-1 text-right">
+                                ₹{Math.max(rem, 0).toLocaleString("en-IN")}
+                              </td>
+                              <td className="border border-black px-2 py-1 text-center">
+                                {p.paymentMode}
+                              </td>
+                              <td className="border border-black px-2 py-1">
+                                {p.date}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -1,58 +1,58 @@
 # Gobinath Hotel POS
 
 ## Current State
-
-A full-stack POS app built with React + TypeScript on the frontend, Motoko backend. The frontend is a single `App.tsx` file with all screens: Login, Branch Select, Dashboard, Billing, Payment, Bill Preview, Menu Management, Reports, Employees, Settings.
-
-Current design uses a light cream + dark green theme (primary: `#0F5132`, accent: `#FF7A00`). It has a left sidebar with Fraunces/Playfair Display headings and Poppins body. The sidebar has nav items, theme toggle, switch branch, logout. Cards use `.pos-card` and `.pos-card-hover` utility classes defined in `index.css`.
+- Full POS app with Login, Branch Select, Dashboard, Billing, Payment, Bill Preview, Menu Management, Reports, Employees, Settings.
+- Employee module: Employee cards with auto-generated ID, name, mobile, address, role (fixed enum), salary type (Monthly/Daily), salary amount, advance tracking (amount + date + reason), salaryPaid boolean status toggle. Financial summary shows total employees, total salary expense, total advance given, pending salary count.
+- Employee data stored in localStorage as `pos_employees`.
+- Screen type enum has: login, branch-select, dashboard, billing, payment, bill-preview, menu, reports, employees, settings.
+- Sidebar nav items built from `navItems` array based on role.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Full dark POS color system as the default theme (not light-first). The app should load in dark mode by default, and the theme toggle switches to a light version.
-- New CSS utility classes: `.dark-card`, `.glow-btn`, `.glow-btn-orange`, `.sidebar-item-active`, `.sidebar-item` with orange glow effects.
-- Orange glow box shadows for active sidebar items, hover states, and primary buttons.
-- New keyframe `pulse-glow` for glowing button effect on CTAs.
+1. **Employee form: Date of Join field** – new `dateOfJoin` string (YYYY-MM-DD) on Employee type; show in card as "Joined: DD MMM YYYY".
+2. **Employee form: customizable Role** – change `role` from fixed enum to free-text string. Keep preset suggestions (Waiter, Cook, Cleaner, Cashier, Manager) but allow owner to type a custom role. Employee card shows role as a badge.
+3. **Employee form: manual Employee ID** – allow owner to optionally override the auto-generated Employee ID at add time.
+4. **Employee card: show Date of Join** – add a "Joined" row to the card info display.
+5. **New screen: `money-management`** – complete new module accessible from sidebar (owner only).
+6. **Sidebar: Money Management nav item** – Wallet/DollarSign icon, label "Money Management", navigates to `money-management` screen.
+7. **Dashboard MODULE_CONFIG: add Money Management card**.
+8. **Money Management module** with the following sub-features:
+   - **Dashboard summary cards** (top row): Total Employees, Total Salary Paid Today, Total Salary Paid This Month, Total Advance Given, Pending Salary Balance.
+   - **Daily Salary Payment recording**: for Daily salary employees – record a payment entry (employee, date, amount, payment mode Cash/Online). Each entry stored as `SalaryPayment`.
+   - **Monthly Salary Payment recording**: for Monthly salary employees – record monthly salary (employee, month, salary amount, payment date, payment mode Cash/Online). Each entry stored as `SalaryPayment`.
+   - **Advance Payment recording**: standalone advance recording panel (separate from the Employee cards). Fields: employee, advance amount, date, payment mode Cash/Online, notes. Stored in employee advances array.
+   - **Remaining Salary Balance per employee**: computed as Salary - Total Advance Taken - Total Salary Paid. Shown per employee row: Salary Amount, Total Advance, Salary Paid, Remaining Balance.
+   - **Salary History**: unified timeline per employee showing all salary payments and advances chronologically. Type label: "Advance" or "Salary". Format: "DD MMM – Type – ₹Amount – Mode".
+   - **Salary Report Download**: PDF download (using `window.print()` with a print-only report div) and CSV/Excel-like download using Blob. Filters: date range, employee, branch. Report columns: Employee Name, Salary Type, Salary Amount, Advance Taken, Salary Paid, Remaining Balance, Payment Mode, Payment Date.
+   - **Tab navigation inside module**: tabs for Overview, Pay Salary, Pay Advance, History, Report.
 
 ### Modify
-- **`index.css`** — completely replace `:root` and `.dark` token blocks. Dark mode (`#1E1E2E` background) becomes the `:root` default. Light mode becomes `.light` override class. Update all semantic tokens to match the new dark POS palette. Update `.pos-card`, `.pos-card-hover` with dark card background and orange hover glow.
-- **`tailwind.config.js`** — update `boxShadow` to add `glow-orange`, `glow-active`, `card-dark` shadows. No font change (keep Poppins/body + display). Update `keyframes` to add `pulse-glow`, `slide-in`.
-- **App.tsx — AppShell / Sidebar** — apply dark sidebar background (`#1A1A2A`), orange accent highlight for active item with left border orange glow, rounded icon containers with orange glow on active. Bottom section: Switch Branch, Dark Mode Toggle, Logout with proper dark styling.
-- **App.tsx — All screen components** — apply the new dark design tokens throughout: dark card backgrounds, orange accent buttons, orange text for prices/amounts, secondary muted text in `#B8B8C5`.
-- **App.tsx — BillingScreen** — category tabs with orange active state. Menu item cards with dark background and orange add button. Right panel with dark background. "Proceed to Payment" button with orange glow.
-- **App.tsx — PaymentScreen** — dark background total card with orange gradient. Payment method buttons with orange glow on selection. Cash/QR panel with dark card style.
-- **App.tsx — DashboardScreen** — stat cards with dark card bg and orange accent values. Module cards with dark card bg, image, and orange hover glow.
-- **App.tsx — MenuScreen** — dark card items, orange price text, orange add/edit buttons.
-- **App.tsx — EmployeesScreen** — dark employee cards, orange salary/advance accents.
-- **App.tsx — ReportsScreen** — dark chart cards, orange chart colors.
-- **App.tsx — SettingsScreen** — dark form cards, orange save buttons.
-- **App.tsx — BillPreviewScreen** — dark preview background, print button with orange glow.
-- **App.tsx — LoginScreen** — keep the existing green gradient background for contrast/brand. Update PIN card numpad buttons to use dark card style with orange highlights.
-- **App.tsx — BranchSelectScreen** — keep dark green gradient background, update branch cards to use dark card style with orange hover glow.
+1. **Employee type**: add `dateOfJoin: string` field; change `role` from enum to `string`. Add `salaryPayments: SalaryPayment[]` to Employee (or keep SalaryPayments in separate localStorage key indexed by employee id).
+2. **Employee card UI**: show dateOfJoin. Show customizable role badge (keep color by known roles, fallback for custom). Replace advance-only history with full payment history when Money Management screen is used.
+3. **App state**: add `screen: "money-management"` to Screen type; add `salaryPayments` state; add to `showNav` array.
+4. **AppShell PAGE_TITLES**: add entry for `money-management`.
+5. **Existing EmployeesScreen Add Employee form**: add dateOfJoin field, change role to combobox-style input (select from list OR type custom), allow manual override of Employee ID.
+6. **initializeData**: update seed employee data with dateOfJoin field.
+7. **navItems**: add money-management nav item (owner only).
 
 ### Remove
-- All hardcoded light-theme hex values (`#F8F5F0`, `#0F5132` inline, `rgba(15,81,50,...)` inline) in screen components — replace with CSS token classes.
-- Light card backgrounds on module screens when in default dark mode.
+- Nothing removed; all existing screens preserved.
 
 ## Implementation Plan
-
-1. Update `index.css`:
-   - Set `:root` to the new dark POS palette (`#1E1E2E` background → oklch, `#2F3045` card → oklch, `#FF7A45` accent → oklch, `#FFFFFF` foreground, `#B8B8C5` muted, `#3A3A4F` border).
-   - Move light theme values to a `.light` class (not `.dark`).
-   - Update `.pos-card`, `.pos-card-hover` with dark card bg and orange glow on hover.
-   - Add `.glow-btn`, `.glow-btn-orange` utilities with orange box-shadow glow.
-   - Update sidebar-related tokens.
-   - Update print styles (keep as-is).
-
-2. Update `tailwind.config.js`:
-   - Add `glow-orange`, `card-dark` box shadow tokens.
-   - Add `pulse-glow` keyframe and animation.
-
-3. Rewrite all screen components in `App.tsx` to use semantic token classes throughout:
-   - Replace inline hex colors with `text-accent`, `text-muted-foreground`, `bg-card`, `bg-background`, `border-border`.
-   - Apply `.glow-btn-orange` to all primary CTA buttons.
-   - Apply dark card styling to all cards.
-   - Update sidebar with orange active glow.
-   - Default dark mode initialization: `isDark` state starts as `true`, `document.documentElement` gets `dark` class removed on light mode toggle.
-
-4. Validate (typecheck + lint + build).
+1. Add `SalaryPayment` interface: `{ id, employeeId, type: "Salary" | "Advance", salaryType: "Monthly" | "Daily", month?: string, amount, date, paymentMode: "Cash" | "Online", notes?: string, createdAt }`.
+2. Update `Employee` interface: add `dateOfJoin: string`, change `role` to `string`, add `salaryPayments: SalaryPayment[]` (or keep in a separate state array – use separate state `salaryPayments: SalaryPayment[]` stored in `pos_salary_payments` for cleaner separation).
+3. Update `Screen` type to include `"money-management"`.
+4. Update `initializeData` to seed `pos_salary_payments: []` and add `dateOfJoin` to seed employees.
+5. Update `ROLE_COLORS` to handle string roles with fallback.
+6. Update `EmployeesScreen` Add Employee form: dateOfJoin input, role combobox (datalist or manual input with preset suggestions), optional manual employeeId input.
+7. Update employee card to show dateOfJoin, updated role badge.
+8. Add `salary-payments` localStorage sync effect.
+9. Add `MoneyManagementScreen` component with 5 tabs:
+   - **Overview**: 5 summary stat cards + employee salary table (name, salary, advance, paid, remaining, status badge).
+   - **Pay Salary**: form to select employee (filtered by salary type), fill payment fields, submit creates SalaryPayment record.
+   - **Pay Advance**: form to select employee, fill advance fields, updates employee.advances and creates SalaryPayment record of type Advance.
+   - **History**: employee selector + timeline list of all SalaryPayments sorted descending.
+   - **Report**: date range + employee filter + branch filter + generate table + PDF print button + CSV download button.
+10. Add MoneyManagement to sidebar navItems (owner), showNav array, AppShell PAGE_TITLES, and MODULE_CONFIG.
+11. Wire MoneyManagementScreen in App render with all required state props.
