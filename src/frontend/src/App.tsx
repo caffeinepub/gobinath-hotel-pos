@@ -29,32 +29,47 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/sonner";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft,
+  Banknote,
   BarChart2,
   Building2,
+  Calendar,
   Check,
+  CheckCircle2,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   Clock,
   Edit3,
+  History,
   ImageIcon,
   IndianRupee,
+  LayoutDashboard,
   LogOut,
   MapPin,
+  Menu as MenuIcon,
   Minus,
+  Moon,
   Package,
+  Phone,
   Plus,
   Printer,
+  QrCode,
   RefreshCw,
   Settings,
   Shield,
   ShoppingCart,
   Store,
+  Sun,
   Trash2,
   TrendingUp,
   UserCog,
   Users,
   UtensilsCrossed,
+  Wallet,
   X,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -73,6 +88,7 @@ import {
   YAxis,
 } from "recharts";
 import { toast } from "sonner";
+import { QRCodeSVG } from "./components/QRCodeSVG";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,7 +105,7 @@ type Screen =
   | "settings";
 
 type Category = "Breakfast" | "Lunch" | "Dinner" | "Beverages" | "Snacks";
-type PaymentMethod = "Cash" | "UPI" | "Card";
+type PaymentMethod = "Cash" | "QR";
 type Role = "owner" | "staff";
 
 interface MenuItem {
@@ -123,13 +139,26 @@ interface Order {
   createdAt: number;
 }
 
+interface AdvanceRecord {
+  id: string;
+  amount: number;
+  date: string; // YYYY-MM-DD
+  reason: string;
+  createdAt: number;
+}
+
 interface Employee {
   id: string;
   branchId: number;
+  employeeId: string; // auto-generated: EMP-001, EMP-002, ...
   name: string;
-  role: string;
+  mobile: string;
+  address: string;
+  role: "Waiter" | "Cook" | "Cleaner" | "Manager" | "Cashier";
+  salaryType: "Monthly" | "Daily";
   salary: number;
   salaryPaid: boolean;
+  advances: AdvanceRecord[];
 }
 
 interface GSTSettings {
@@ -137,6 +166,11 @@ interface GSTSettings {
   enabled: boolean;
   gstNumber: string;
   percentage: number;
+}
+
+interface UpiSettings {
+  branchId: number;
+  upiId: string;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -154,7 +188,7 @@ const CATEGORIES: Category[] = [
   "Snacks",
 ];
 
-const CATEGORY_EMOJIS: Record<Category, string> = {
+const _CATEGORY_EMOJIS: Record<Category, string> = {
   Breakfast: "🌅",
   Lunch: "☀️",
   Dinner: "🌙",
@@ -379,31 +413,26 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
 }
 
-function generateBillNumber(branchId: number, orders: Order[]): string {
-  const today = new Date();
-  const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
-  const branchPrefix = branchId === 1 ? "SET" : "JJC";
-  const todayOrders = orders.filter(
-    (o) =>
-      o.branchId === branchId &&
-      new Date(o.createdAt).toDateString() === today.toDateString(),
-  );
-  const seq = String(todayOrders.length + 1).padStart(3, "0");
-  return `${branchPrefix}-${dateStr}-${seq}`;
+function generateEmployeeId(allEmployees: Employee[]): string {
+  const maxNum = allEmployees.reduce((max, e) => {
+    const match = e.employeeId?.match(/EMP-(\d+)/);
+    return match ? Math.max(max, Number.parseInt(match[1], 10)) : max;
+  }, 0);
+  return `EMP-${String(maxNum + 1).padStart(3, "0")}`;
+}
+
+function generateBillNumber(branchId: number): string {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const key = `pos_bill_counter_${branchId}_${today}`;
+  const current = Number.parseInt(localStorage.getItem(key) ?? "0", 10);
+  const next = current + 1;
+  localStorage.setItem(key, String(next));
+  const prefix = branchId === 1 ? "GSS" : "GJJ";
+  return `${prefix}-${String(next).padStart(4, "0")}`;
 }
 
 function formatINR(amount: number): string {
   return `₹${amount.toFixed(2)}`;
-}
-
-function formatDate(ts: number): string {
-  return new Date(ts).toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 // ── Seed data ────────────────────────────────────────────────────────────────
@@ -424,34 +453,62 @@ function initializeData() {
       {
         id: generateId(),
         branchId: 1,
+        employeeId: "EMP-001",
         name: "Ramu",
+        mobile: "9876543210",
+        address: "Sethurapatti, Tamil Nadu",
         role: "Waiter",
+        salaryType: "Monthly",
         salary: 8000,
         salaryPaid: true,
+        advances: [],
       },
       {
         id: generateId(),
         branchId: 1,
+        employeeId: "EMP-002",
         name: "Selvam",
+        mobile: "9876543211",
+        address: "Sethurapatti, Tamil Nadu",
         role: "Cook",
+        salaryType: "Monthly",
         salary: 12000,
         salaryPaid: false,
+        advances: [
+          {
+            id: generateId(),
+            amount: 2000,
+            date: "2026-03-08",
+            reason: "Emergency",
+            createdAt: Date.now(),
+          },
+        ],
       },
       {
         id: generateId(),
         branchId: 2,
+        employeeId: "EMP-003",
         name: "Kannan",
+        mobile: "9876543212",
+        address: "JJ College Area, Tamil Nadu",
         role: "Waiter",
+        salaryType: "Monthly",
         salary: 8000,
         salaryPaid: true,
+        advances: [],
       },
       {
         id: generateId(),
         branchId: 2,
+        employeeId: "EMP-004",
         name: "Mani",
+        mobile: "9876543213",
+        address: "JJ College Area, Tamil Nadu",
         role: "Cashier",
+        salaryType: "Monthly",
         salary: 10000,
         salaryPaid: true,
+        advances: [],
       },
     ];
     lsSet("pos_employees", employees);
@@ -462,6 +519,13 @@ function initializeData() {
       { branchId: 2, enabled: false, gstNumber: "", percentage: 5 },
     ];
     lsSet("pos_gst_settings", gst);
+  }
+  if (!localStorage.getItem("pos_upi_settings")) {
+    const upi: UpiSettings[] = [
+      { branchId: 1, upiId: "" },
+      { branchId: 2, upiId: "" },
+    ];
+    lsSet("pos_upi_settings", upi);
   }
 }
 
@@ -485,13 +549,27 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>(() =>
     lsGet<Order[]>("pos_orders", []),
   );
-  const [employees, setEmployees] = useState<Employee[]>(() =>
-    lsGet<Employee[]>("pos_employees", []),
-  );
+  const [employees, setEmployees] = useState<Employee[]>(() => {
+    const raw = lsGet<Employee[]>("pos_employees", []);
+    return raw.map((e, i) => ({
+      ...e,
+      employeeId: e.employeeId ?? `EMP-${String(i + 1).padStart(3, "0")}`,
+      mobile: e.mobile ?? "",
+      address: e.address ?? "",
+      salaryType: (e.salaryType ?? "Monthly") as Employee["salaryType"],
+      advances: e.advances ?? [],
+    }));
+  });
   const [gstSettings, setGstSettings] = useState<GSTSettings[]>(() =>
     lsGet<GSTSettings[]>("pos_gst_settings", [
       { branchId: 1, enabled: false, gstNumber: "", percentage: 5 },
       { branchId: 2, enabled: false, gstNumber: "", percentage: 5 },
+    ]),
+  );
+  const [upiSettings, setUpiSettings] = useState<UpiSettings[]>(() =>
+    lsGet<UpiSettings[]>("pos_upi_settings", [
+      { branchId: 1, upiId: "" },
+      { branchId: 2, upiId: "" },
     ]),
   );
 
@@ -501,8 +579,22 @@ export default function App() {
   const [customerMobile, setCustomerMobile] = useState("");
   const [activeCategory, setActiveCategory] = useState<"All" | Category>("All");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Cash");
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [cashReceived, setCashReceived] = useState<string>("");
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+  const [isDark, setIsDark] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // isDark = false → dark theme (default, no class); isDark = true → light theme (.light class)
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add("light");
+      document.documentElement.classList.remove("dark");
+    } else {
+      document.documentElement.classList.remove("light");
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDark]);
 
   // Sync to localStorage
   useEffect(() => {
@@ -517,6 +609,9 @@ export default function App() {
   useEffect(() => {
     lsSet("pos_gst_settings", gstSettings);
   }, [gstSettings]);
+  useEffect(() => {
+    lsSet("pos_upi_settings", upiSettings);
+  }, [upiSettings]);
 
   const activeBranchObj = BRANCHES.find((b) => b.id === activeBranch)!;
   const activeGST = gstSettings.find((g) => g.branchId === activeBranch) ?? {
@@ -524,6 +619,10 @@ export default function App() {
     enabled: false,
     gstNumber: "",
     percentage: 5,
+  };
+  const activeUpi = upiSettings.find((u) => u.branchId === activeBranch) ?? {
+    branchId: activeBranch,
+    upiId: "",
   };
 
   const branchMenuItems = menuItems.filter(
@@ -650,7 +749,7 @@ export default function App() {
     const newOrder: Order = {
       id: generateId(),
       branchId: activeBranch,
-      billNumber: generateBillNumber(activeBranch, orders),
+      billNumber: generateBillNumber(activeBranch),
       items: cart,
       customerName,
       customerMobile,
@@ -663,8 +762,12 @@ export default function App() {
     const updatedOrders = [...orders, newOrder];
     setOrders(updatedOrders);
     setCurrentOrder(newOrder);
+    setPaymentSuccess(true);
+  }
+
+  function handlePrintBill() {
+    setPaymentSuccess(false);
     setScreen("bill-preview");
-    toast.success(`Payment complete! Bill #${newOrder.billNumber}`);
   }
 
   function startNewOrder() {
@@ -672,6 +775,7 @@ export default function App() {
     setCurrentOrder(null);
     setCashReceived("");
     setPaymentMethod("Cash");
+    setPaymentSuccess(false);
     setScreen("billing");
   }
 
@@ -688,6 +792,12 @@ export default function App() {
     ];
     if (role === "owner") {
       return [
+        {
+          id: "dashboard",
+          label: "Dashboard",
+          icon: LayoutDashboard,
+          screen: "dashboard" as Screen,
+        },
         ...base,
         {
           id: "menu",
@@ -721,6 +831,8 @@ export default function App() {
   const showNav = [
     "dashboard",
     "billing",
+    "payment",
+    "bill-preview",
     "menu",
     "reports",
     "employees",
@@ -730,174 +842,379 @@ export default function App() {
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-body">
+    <div className="min-h-screen bg-background transition-colors duration-300">
       <Toaster position="top-center" richColors />
 
-      {/* Top Bar */}
-      {showNav && (
-        <TopBar
-          role={role}
-          branch={activeBranchObj}
-          onSwitchBranch={() => setScreen("branch-select")}
-          onLogout={handleLogout}
-          screen={screen}
+      {/* Pre-auth screens: no shell */}
+      {screen === "login" && (
+        <LoginScreen
+          loginType={loginType}
+          pin={pin}
+          pinError={pinError}
+          onSelectType={handleLoginTypeSelect}
+          onPinDigit={handlePinDigit}
+          onPinClear={handlePinClear}
+          onPinClearAll={handlePinClearAll}
+          onLogin={handleLogin}
+          onBack={() => setLoginType(null)}
         />
       )}
 
-      {/* Main content */}
-      <main className={`flex-1 overflow-y-auto ${showNav ? "pb-20" : ""}`}>
-        {screen === "login" && (
-          <LoginScreen
-            loginType={loginType}
-            pin={pin}
-            pinError={pinError}
-            onSelectType={handleLoginTypeSelect}
-            onPinDigit={handlePinDigit}
-            onPinClear={handlePinClear}
-            onPinClearAll={handlePinClearAll}
-            onLogin={handleLogin}
-            onBack={() => setLoginType(null)}
-          />
-        )}
-
-        {screen === "branch-select" && (
-          <BranchSelectScreen
-            onSelect={(id) => {
-              setActiveBranch(id);
-              setScreen("dashboard");
-            }}
-          />
-        )}
-
-        {screen === "dashboard" && role === "owner" && (
-          <DashboardScreen
-            branch={activeBranchObj}
-            orders={orders}
-            onNavigate={(s) => setScreen(s)}
-          />
-        )}
-
-        {screen === "billing" && (
-          <BillingScreen
-            menuItems={branchMenuItems}
-            cart={cart}
-            activeCategory={activeCategory}
-            customerName={customerName}
-            customerMobile={customerMobile}
-            subtotal={subtotal}
-            gstAmount={gstAmount}
-            total={total}
-            gstEnabled={activeGST.enabled}
-            gstPct={activeGST.percentage}
-            onAddToCart={addToCart}
-            onUpdateQty={updateQty}
-            onRemoveFromCart={removeFromCart}
-            onClearCart={clearCart}
-            onSetCategory={setActiveCategory}
-            onSetCustomerName={setCustomerName}
-            onSetCustomerMobile={setCustomerMobile}
-            onProceedToPayment={() => setScreen("payment")}
-            onBack={() => setScreen("dashboard")}
-          />
-        )}
-
-        {screen === "payment" && (
-          <PaymentScreen
-            total={total}
-            paymentMethod={paymentMethod}
-            cashReceived={cashReceived}
-            onSetMethod={setPaymentMethod}
-            onSetCashReceived={setCashReceived}
-            onComplete={completePayment}
-            onBack={() => setScreen("billing")}
-          />
-        )}
-
-        {screen === "bill-preview" && currentOrder && (
-          <BillPreviewScreen
-            order={currentOrder}
-            branch={activeBranchObj}
-            gstSettings={activeGST}
-            role={role}
-            onNewOrder={startNewOrder}
-            onDashboard={() => setScreen("dashboard")}
-          />
-        )}
-
-        {screen === "menu" && role === "owner" && (
-          <MenuScreen
-            menuItems={menuItems.filter((m) => m.branchId === activeBranch)}
-            branchId={activeBranch}
-            onUpdate={setMenuItems}
-            allItems={menuItems}
-            onBack={() => setScreen("dashboard")}
-          />
-        )}
-
-        {screen === "reports" && role === "owner" && (
-          <ReportsScreen
-            orders={orders}
-            onBack={() => setScreen("dashboard")}
-          />
-        )}
-
-        {screen === "employees" && role === "owner" && (
-          <EmployeesScreen
-            employees={employees}
-            branchId={activeBranch}
-            onUpdate={setEmployees}
-            allEmployees={employees}
-            onBack={() => setScreen("dashboard")}
-          />
-        )}
-
-        {screen === "settings" && role === "owner" && (
-          <GSTSettingsScreen
-            gstSettings={gstSettings}
-            branchId={activeBranch}
-            onUpdate={setGstSettings}
-            onBack={() => setScreen("dashboard")}
-          />
-        )}
-      </main>
-
-      {/* Bottom Navigation */}
-      {showNav && (
-        <BottomNav
-          items={navItems}
-          currentScreen={screen}
-          onNavigate={(s) => setScreen(s)}
+      {screen === "branch-select" && (
+        <BranchSelectScreen
+          onSelect={(id) => {
+            setActiveBranch(id);
+            setScreen("dashboard");
+          }}
         />
+      )}
+
+      {/* Authenticated screens: wrapped in AppShell */}
+      {showNav && (
+        <AppShell
+          role={role}
+          branch={activeBranchObj}
+          screen={screen}
+          isDark={isDark}
+          sidebarOpen={sidebarOpen}
+          onToggleDark={() => setIsDark((d) => !d)}
+          onToggleSidebar={() => setSidebarOpen((o) => !o)}
+          onCloseSidebar={() => setSidebarOpen(false)}
+          onNavigate={(s) => {
+            setScreen(s);
+            setSidebarOpen(false);
+          }}
+          onSwitchBranch={() => {
+            setScreen("branch-select");
+            setSidebarOpen(false);
+          }}
+          onLogout={handleLogout}
+          navItems={navItems}
+        >
+          {screen === "dashboard" && role === "owner" && (
+            <DashboardScreen
+              branch={activeBranchObj}
+              orders={orders}
+              onNavigate={(s) => setScreen(s)}
+            />
+          )}
+
+          {screen === "billing" && (
+            <BillingScreen
+              menuItems={branchMenuItems}
+              cart={cart}
+              activeCategory={activeCategory}
+              customerName={customerName}
+              customerMobile={customerMobile}
+              subtotal={subtotal}
+              gstAmount={gstAmount}
+              total={total}
+              gstEnabled={activeGST.enabled}
+              gstPct={activeGST.percentage}
+              onAddToCart={addToCart}
+              onUpdateQty={updateQty}
+              onRemoveFromCart={removeFromCart}
+              onClearCart={clearCart}
+              onSetCategory={setActiveCategory}
+              onSetCustomerName={setCustomerName}
+              onSetCustomerMobile={setCustomerMobile}
+              onProceedToPayment={() => setScreen("payment")}
+              onBack={() => setScreen("dashboard")}
+            />
+          )}
+
+          {screen === "payment" && (
+            <PaymentScreen
+              total={total}
+              paymentMethod={paymentMethod}
+              cashReceived={cashReceived}
+              upiId={activeUpi.upiId}
+              paymentSuccess={paymentSuccess}
+              onSetMethod={setPaymentMethod}
+              onSetCashReceived={setCashReceived}
+              onComplete={completePayment}
+              onPrintBill={handlePrintBill}
+              onBackToBilling={startNewOrder}
+              onBack={() => setScreen("billing")}
+            />
+          )}
+
+          {screen === "bill-preview" && currentOrder && (
+            <BillPreviewScreen
+              order={currentOrder}
+              branch={activeBranchObj}
+              gstSettings={activeGST}
+              role={role}
+              onNewOrder={startNewOrder}
+              onDashboard={() => setScreen("dashboard")}
+            />
+          )}
+
+          {screen === "menu" && role === "owner" && (
+            <MenuScreen
+              menuItems={menuItems.filter((m) => m.branchId === activeBranch)}
+              branchId={activeBranch}
+              onUpdate={setMenuItems}
+              allItems={menuItems}
+              onBack={() => setScreen("dashboard")}
+            />
+          )}
+
+          {screen === "reports" && role === "owner" && (
+            <ReportsScreen
+              orders={orders}
+              onBack={() => setScreen("dashboard")}
+            />
+          )}
+
+          {screen === "employees" && role === "owner" && (
+            <EmployeesScreen
+              employees={employees}
+              branchId={activeBranch}
+              onUpdate={setEmployees}
+              allEmployees={employees}
+              onBack={() => setScreen("dashboard")}
+            />
+          )}
+
+          {screen === "settings" && role === "owner" && (
+            <SettingsScreen
+              gstSettings={gstSettings}
+              upiSettings={upiSettings}
+              branchId={activeBranch}
+              onUpdateGst={setGstSettings}
+              onUpdateUpi={setUpiSettings}
+              onBack={() => setScreen("dashboard")}
+            />
+          )}
+        </AppShell>
       )}
     </div>
   );
 }
 
-// ── TopBar ────────────────────────────────────────────────────────────────────
+// ── AppShell ──────────────────────────────────────────────────────────────────
 
-function useHeaderClock() {
+function AppShell({
+  role,
+  branch,
+  screen,
+  isDark,
+  sidebarOpen,
+  onToggleDark,
+  onToggleSidebar,
+  onCloseSidebar,
+  onNavigate,
+  onSwitchBranch,
+  onLogout,
+  navItems,
+  children,
+}: {
+  role: Role;
+  branch: { id: number; name: string; short: string };
+  screen: Screen;
+  isDark: boolean;
+  sidebarOpen: boolean;
+  onToggleDark: () => void;
+  onToggleSidebar: () => void;
+  onCloseSidebar: () => void;
+  onNavigate: (s: Screen) => void;
+  onSwitchBranch: () => void;
+  onLogout: () => void;
+  navItems: {
+    id: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    screen: Screen;
+  }[];
+  children: React.ReactNode;
+}) {
+  const PAGE_TITLES: Partial<Record<Screen, string>> = {
+    dashboard: "Dashboard",
+    billing: "Billing",
+    menu: "Menu Management",
+    reports: "Reports",
+    employees: "Employees",
+    settings: "Settings",
+    payment: "Payment",
+    "bill-preview": "Bill Preview",
+  };
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={onCloseSidebar}
+          onKeyDown={(e) => e.key === "Escape" && onCloseSidebar()}
+          role="button"
+          tabIndex={0}
+          aria-label="Close sidebar"
+        />
+      )}
+
+      {/* ── Sidebar ── */}
+      <aside
+        className={`fixed top-0 left-0 h-full z-50 flex flex-col w-60 bg-sidebar text-sidebar-foreground transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:static lg:z-auto`}
+        data-ocid="sidebar.panel"
+      >
+        {/* Logo + Hotel name */}
+        <div className="px-4 py-5 border-b border-sidebar-border flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/30 flex-shrink-0 shadow">
+            <img
+              src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
+              alt="Logo"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-display font-bold text-sm text-sidebar-foreground leading-tight truncate">
+              Gobinath Hotel
+            </p>
+            <p className="text-[11px] text-sidebar-foreground/60 leading-tight truncate">
+              {role === "owner" ? branch.short : "Staff Mode"}
+            </p>
+          </div>
+        </div>
+
+        {/* Nav items */}
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = screen === item.screen;
+            return (
+              <button
+                type="button"
+                key={item.id}
+                data-ocid={`sidebar.nav.${item.id}_link`}
+                onClick={() => onNavigate(item.screen)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 ${
+                  isActive
+                    ? "sidebar-item-active text-sidebar-foreground font-semibold"
+                    : "text-sidebar-foreground/60 hover:bg-primary/8 hover:text-sidebar-foreground"
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                    isActive
+                      ? "bg-primary/20 text-primary"
+                      : "bg-white/8 text-sidebar-foreground/60"
+                  }`}
+                >
+                  <Icon
+                    className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                  />
+                </div>
+                <span className="text-sm">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Bottom: Branch switch (owner) + Theme toggle + Logout */}
+        <div className="border-t border-sidebar-border px-2 py-3 space-y-1">
+          {role === "owner" && (
+            <button
+              type="button"
+              data-ocid="sidebar.switch_branch_button"
+              onClick={onSwitchBranch}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/60 hover:bg-primary/10 hover:text-sidebar-foreground transition-all duration-150"
+            >
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <MapPin className="h-4 w-4 text-primary" />
+              </div>
+              <span className="text-sm">Switch Branch</span>
+            </button>
+          )}
+          <button
+            type="button"
+            data-ocid="sidebar.theme_toggle"
+            onClick={onToggleDark}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/60 hover:bg-primary/10 hover:text-sidebar-foreground transition-all duration-150"
+          >
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              {isDark ? (
+                <Sun className="h-4 w-4 text-primary" />
+              ) : (
+                <Moon className="h-4 w-4 text-primary" />
+              )}
+            </div>
+            <span className="text-sm">
+              {isDark ? "Light Mode" : "Dark Mode"}
+            </span>
+          </button>
+          <button
+            type="button"
+            data-ocid="sidebar.logout_button"
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/60 hover:bg-destructive/20 hover:text-destructive transition-all duration-150"
+          >
+            <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
+              <LogOut className="h-4 w-4 text-destructive" />
+            </div>
+            <span className="text-sm">Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Right side: mini-header + content ── */}
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        {/* Mini header */}
+        <header className="h-14 flex items-center justify-between px-4 border-b border-border bg-card flex-shrink-0">
+          <div className="flex items-center gap-3">
+            {/* Hamburger (mobile only) */}
+            <button
+              type="button"
+              data-ocid="topbar.hamburger_button"
+              onClick={onToggleSidebar}
+              className="lg:hidden p-2 rounded-xl hover:bg-secondary transition-colors"
+            >
+              <MenuIcon className="h-5 w-5 text-foreground" />
+            </button>
+            <h1 className="font-display font-bold text-lg text-foreground">
+              {PAGE_TITLES[screen] ?? ""}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <SidebarClock />
+            <button
+              type="button"
+              data-ocid="topbar.theme_toggle"
+              onClick={onToggleDark}
+              className="hidden lg:flex p-2 rounded-xl hover:bg-secondary transition-colors text-primary hover:text-primary"
+            >
+              {isDark ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </button>
+            <button
+              type="button"
+              data-ocid="topbar.logout_button"
+              onClick={onLogout}
+              className="p-2 rounded-xl hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </header>
+
+        {/* Scrollable content */}
+        <main className="flex-1 overflow-y-auto">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+function SidebarClock() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-  return now;
-}
-
-function TopBar({
-  role,
-  branch,
-  onSwitchBranch,
-  onLogout,
-}: {
-  role: Role;
-  branch: { name: string; short: string };
-  onSwitchBranch: () => void;
-  onLogout: () => void;
-  screen: Screen;
-}) {
-  const now = useHeaderClock();
-
   const dateStr = now.toLocaleDateString("en-IN", {
     weekday: "short",
     day: "numeric",
@@ -908,142 +1225,14 @@ function TopBar({
     minute: "2-digit",
     hour12: true,
   });
-
   return (
-    <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-lg">
-      <div className="flex items-center justify-between px-4 py-2.5 max-w-4xl mx-auto gap-3">
-        {/* Left: Logo + Title + Branch */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          {/* Logo — circular, white border, shadow */}
-          <div
-            className="flex-shrink-0"
-            style={{
-              width: "38px",
-              height: "38px",
-              borderRadius: "50%",
-              overflow: "hidden",
-              border: "2px solid rgba(255,255,255,0.90)",
-              boxShadow:
-                "0 0 0 1px rgba(255,255,255,0.20), 0 4px 12px rgba(0,0,0,0.30)",
-            }}
-          >
-            <img
-              src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
-              alt="Gobinath Hotel Logo"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          {/* Title + Location */}
-          <div className="flex flex-col min-w-0">
-            <span
-              className="font-bold text-sm sm:text-base leading-tight truncate"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-            >
-              Gobinath Hotel POS
-            </span>
-            <span className="text-[11px] opacity-80 truncate font-body leading-tight">
-              {role === "owner" ? branch.short : "Staff Mode"}
-            </span>
-          </div>
-        </div>
-
-        {/* Right: Live Date & Time + Change Branch (owner only) + Logout */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Date & Time block */}
-          <div className="text-right leading-tight" data-ocid="topbar.datetime">
-            <p className="text-[11px] sm:text-xs font-semibold opacity-95 font-body">
-              {dateStr}
-            </p>
-            <p className="text-[11px] sm:text-xs opacity-75 font-body">
-              {timeStr}
-            </p>
-          </div>
-
-          {/* Change Branch — owner only */}
-          {role === "owner" && (
-            <>
-              <span className="text-primary-foreground opacity-50 text-sm select-none">
-                |
-              </span>
-              <button
-                type="button"
-                data-ocid="topbar.change_branch_button"
-                onClick={onSwitchBranch}
-                className="flex items-center gap-1.5 h-9 px-2 rounded-lg text-xs font-medium text-primary-foreground hover:bg-white/15 transition-colors"
-              >
-                <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="hidden sm:inline">Change Branch</span>
-                <span className="sm:hidden">Branch</span>
-              </button>
-            </>
-          )}
-
-          {/* Logout */}
-          <Button
-            size="sm"
-            variant="ghost"
-            data-ocid="topbar.logout_button"
-            className="text-primary-foreground hover:bg-white/20 h-8 w-8 p-0"
-            onClick={onLogout}
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-// ── BottomNav ─────────────────────────────────────────────────────────────────
-
-function BottomNav({
-  items,
-  currentScreen,
-  onNavigate,
-}: {
-  items: {
-    id: string;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    screen: Screen;
-  }[];
-  currentScreen: Screen;
-  onNavigate: (s: Screen) => void;
-}) {
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-lg">
-      <div className="flex items-center justify-around max-w-4xl mx-auto px-2">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentScreen === item.screen;
-          return (
-            <button
-              type="button"
-              key={item.id}
-              data-ocid={`nav.${item.id}_tab`}
-              onClick={() => onNavigate(item.screen)}
-              className={`flex flex-col items-center justify-center py-2 px-3 flex-1 min-h-[60px] transition-colors font-body ${
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon
-                className={`h-5 w-5 mb-0.5 ${isActive ? "text-primary" : ""}`}
-              />
-              <span
-                className={`text-[11px] font-medium ${isActive ? "text-primary font-semibold" : ""}`}
-              >
-                {item.label}
-              </span>
-              {isActive && (
-                <div className="absolute bottom-0 h-0.5 w-8 bg-primary rounded-full" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </nav>
+    <div
+      className="text-right leading-tight hidden sm:block"
+      data-ocid="topbar.datetime"
+    >
+      <p className="text-[11px] font-semibold text-foreground">{dateStr}</p>
+      <p className="text-[11px] text-muted-foreground">{timeStr}</p>
+    </div>
   );
 }
 
@@ -1408,11 +1597,11 @@ function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
               whileHover={{ scale: 1.025, y: -2 }}
               whileTap={{ scale: 0.975 }}
               onClick={() => onSelect(branch.id)}
-              className="group relative flex items-center gap-4 px-5 py-4 sm:py-5 rounded-2xl border border-white/10 cursor-pointer transition-shadow duration-300 text-left w-full"
+              className="group relative flex items-center gap-4 px-5 py-4 sm:py-5 rounded-2xl border border-border cursor-pointer transition-all duration-300 text-left w-full hover:border-primary/40"
               style={{
-                background: "oklch(0.975 0.006 85 / 0.97)",
+                background: "oklch(0.235 0.032 268 / 0.95)",
                 boxShadow:
-                  "0 4px 24px 0 rgba(0,0,0,0.18), 0 1px 4px 0 rgba(0,0,0,0.10)",
+                  "0 4px 24px 0 rgba(0,0,0,0.30), 0 1px 4px 0 rgba(0,0,0,0.20)",
               }}
             >
               {/* Hover highlight overlay */}
@@ -1420,41 +1609,22 @@ function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
                 className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                 style={{
                   background:
-                    "linear-gradient(135deg, rgba(15,81,50,0.05) 0%, rgba(255,122,0,0.03) 100%)",
+                    "linear-gradient(135deg, oklch(0.705 0.185 42 / 0.06) 0%, oklch(0.730 0.175 45 / 0.03) 100%)",
                 }}
               />
 
               {/* Icon circle */}
-              <div
-                className="relative w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{
-                  background: "rgba(15,81,50,0.10)",
-                  boxShadow:
-                    "0 2px 10px 0 rgba(15,81,50,0.15), 0 0 0 1.5px rgba(15,81,50,0.12)",
-                }}
-              >
-                <Icon
-                  className="h-6 w-6"
-                  style={{ color: "oklch(0.28 0.08 151)" }}
-                />
+              <div className="relative w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-primary/15 shadow-glow-orange">
+                <Icon className="h-6 w-6 text-primary" />
               </div>
 
               {/* Branch name — bold and clear */}
-              <p
-                className="flex-1 font-bold text-base sm:text-lg leading-snug truncate"
-                style={{
-                  fontFamily: "'Playfair Display', Fraunces, Georgia, serif",
-                  color: "oklch(0.18 0.05 151)",
-                }}
-              >
+              <p className="flex-1 font-display font-bold text-base sm:text-lg leading-snug truncate text-foreground">
                 {branch.name}
               </p>
 
               {/* Arrow */}
-              <ChevronRight
-                className="flex-shrink-0 h-5 w-5 opacity-35 group-hover:opacity-70 group-hover:translate-x-0.5 transition-all duration-300"
-                style={{ color: "oklch(0.28 0.08 151)" }}
-              />
+              <ChevronRight className="flex-shrink-0 h-5 w-5 text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:text-primary transition-all duration-300" />
             </motion.button>
           );
         })}
@@ -1565,33 +1735,15 @@ function DashboardScreen({
   return (
     <div
       data-ocid="dashboard.page"
-      className="max-w-4xl mx-auto p-4 pb-6 space-y-5"
-      style={{ background: "oklch(var(--background))" }}
+      className="max-w-4xl mx-auto p-4 pb-6 space-y-5 bg-background"
     >
-      {/* Header */}
+      {/* Branch subtitle */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="flex items-center justify-between"
       >
-        <div>
-          <h2
-            className="text-3xl sm:text-4xl font-bold tracking-tight"
-            data-ocid="dashboard.section"
-            style={{
-              fontFamily: "'Playfair Display', Georgia, serif",
-              color: "#0F5132",
-              letterSpacing: "-0.01em",
-              fontWeight: 700,
-            }}
-          >
-            Dashboard
-          </h2>
-          <p className="text-sm text-muted-foreground font-body mt-0.5">
-            {branch.name}
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground mb-1">{branch.name}</p>
       </motion.div>
 
       {/* Stats Row */}
@@ -1605,19 +1757,13 @@ function DashboardScreen({
         {/* Today's Sales */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-2xl p-3 sm:p-4 shadow-stat-card text-center border border-border"
+          className="pos-card p-3 sm:p-4 text-center"
           data-ocid="dashboard.sales_card"
         >
-          <div
-            className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center"
-            style={{ background: "rgba(15,81,50,0.10)" }}
-          >
-            <IndianRupee className="h-4 w-4" style={{ color: "#0F5132" }} />
+          <div className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center bg-primary/15">
+            <IndianRupee className="h-4 w-4 text-primary" />
           </div>
-          <p
-            className="text-base sm:text-lg font-bold leading-tight"
-            style={{ color: "#0F5132" }}
-          >
+          <p className="text-base sm:text-lg font-bold leading-tight text-primary">
             {formatINR(todaySales)}
           </p>
           <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 font-body">
@@ -1628,19 +1774,13 @@ function DashboardScreen({
         {/* Total Orders */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-2xl p-3 sm:p-4 shadow-stat-card text-center border border-border"
+          className="pos-card p-3 sm:p-4 text-center"
           data-ocid="dashboard.orders_card"
         >
-          <div
-            className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center"
-            style={{ background: "rgba(255,122,0,0.10)" }}
-          >
-            <Package className="h-4 w-4" style={{ color: "#FF7A00" }} />
+          <div className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center bg-accent/15">
+            <Package className="h-4 w-4 text-accent" />
           </div>
-          <p
-            className="text-base sm:text-lg font-bold leading-tight"
-            style={{ color: "#FF7A00" }}
-          >
+          <p className="text-base sm:text-lg font-bold leading-tight text-accent">
             {todayOrders.length}
           </p>
           <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 font-body">
@@ -1651,19 +1791,13 @@ function DashboardScreen({
         {/* Top Item */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-2xl p-3 sm:p-4 shadow-stat-card text-center border border-border"
+          className="pos-card p-3 sm:p-4 text-center"
           data-ocid="dashboard.topitem_card"
         >
-          <div
-            className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center"
-            style={{ background: "rgba(31,122,140,0.10)" }}
-          >
-            <TrendingUp className="h-4 w-4" style={{ color: "#1F7A8C" }} />
+          <div className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center bg-primary/10">
+            <TrendingUp className="h-4 w-4 text-primary" />
           </div>
-          <p
-            className="text-xs sm:text-sm font-bold leading-tight truncate"
-            style={{ color: "#1F7A8C" }}
-          >
+          <p className="text-xs sm:text-sm font-bold leading-tight truncate text-foreground">
             {topItem}
           </p>
           <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 font-body">
@@ -1699,17 +1833,14 @@ function DashboardScreen({
             whileHover={{
               scale: 1.05,
               boxShadow:
-                "0 14px 40px 0 rgba(15,81,50,0.18), 0 4px 12px 0 rgba(15,81,50,0.10)",
+                "0 14px 40px 0 oklch(0.705 0.185 42 / 0.20), 0 4px 12px 0 oklch(0.705 0.185 42 / 0.12)",
             }}
             whileTap={{ scale: 0.97 }}
             onClick={() => onNavigate(mod.screen)}
-            className="flex flex-col items-center gap-2.5 bg-white rounded-2xl p-4 sm:p-5 shadow-md border border-border cursor-pointer min-h-[130px] sm:min-h-[150px] text-center transition-all duration-200"
+            className="pos-card-hover flex flex-col items-center gap-2.5 p-4 sm:p-5 cursor-pointer min-h-[130px] sm:min-h-[150px] text-center"
           >
             {/* Module Image */}
-            <div
-              className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-sm"
-              style={{ background: "#F8F5F0" }}
-            >
+            <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-sm bg-secondary/50">
               <img
                 src={mod.image}
                 alt={mod.label}
@@ -1721,13 +1852,7 @@ function DashboardScreen({
             </div>
             {/* Label + Description */}
             <div className="flex flex-col items-center gap-0.5">
-              <p
-                className="font-semibold text-sm sm:text-base leading-tight"
-                style={{
-                  fontFamily: "'Playfair Display', Georgia, serif",
-                  color: "#0F5132",
-                }}
-              >
+              <p className="font-display font-semibold text-sm sm:text-base leading-tight text-foreground">
                 {mod.label}
               </p>
               <p className="text-[11px] text-muted-foreground font-body leading-snug">
@@ -1744,14 +1869,11 @@ function DashboardScreen({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white rounded-2xl shadow-card border border-border p-4"
+          className="pos-card p-4"
           data-ocid="dashboard.recent_orders_section"
         >
-          <h3
-            className="font-semibold text-sm mb-3 flex items-center gap-2 font-body"
-            style={{ color: "#0F5132" }}
-          >
-            <Clock className="h-4 w-4" style={{ color: "#1F7A8C" }} />
+          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2 font-body text-primary">
+            <Clock className="h-4 w-4 text-primary" />
             Recent Orders Today
           </h3>
           <div className="space-y-2">
@@ -1778,10 +1900,7 @@ function DashboardScreen({
                     <Badge variant="outline" className="text-xs font-body">
                       {order.paymentMethod}
                     </Badge>
-                    <span
-                      className="font-semibold font-body"
-                      style={{ color: "#0F5132" }}
-                    >
+                    <span className="font-semibold font-body text-primary">
                       {formatINR(order.total)}
                     </span>
                   </div>
@@ -1815,7 +1934,7 @@ function BillingScreen({
   onSetCustomerName,
   onSetCustomerMobile,
   onProceedToPayment,
-  onBack,
+  onBack: _onBack,
 }: {
   menuItems: MenuItem[];
   cart: OrderItem[];
@@ -1848,21 +1967,9 @@ function BillingScreen({
     <div className="max-w-4xl mx-auto p-0 md:p-4 md:grid md:grid-cols-[1fr_360px] md:gap-4 min-h-[calc(100vh-120px)]">
       {/* Left: Menu */}
       <div className="flex flex-col">
-        {/* Back button row */}
-        <div className="flex items-center gap-2 px-4 py-2 bg-white border-b border-border">
-          <button
-            type="button"
-            data-ocid="billing.back_button"
-            onClick={onBack}
-            className="flex items-center gap-1.5 h-10 px-3 rounded-xl hover:bg-secondary transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back
-          </button>
-        </div>
-
         {/* Category tabs */}
         <div
-          className="flex overflow-x-auto gap-2 px-4 py-3 bg-white border-b border-border no-scrollbar"
+          className="flex overflow-x-auto gap-2 px-4 py-3 bg-card border-b border-border no-scrollbar"
           data-ocid="billing.category_tab"
         >
           {(["All", ...CATEGORIES] as const).map((cat) => (
@@ -1876,7 +1983,7 @@ function BillingScreen({
                   : "bg-secondary text-foreground hover:bg-secondary/80"
               }`}
             >
-              {cat !== "All" && CATEGORY_EMOJIS[cat as Category]} {cat}
+              {cat}
             </button>
           ))}
         </div>
@@ -1903,7 +2010,7 @@ function BillingScreen({
                   className={`relative flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all active:scale-95 ${
                     inCart
                       ? "border-primary bg-primary/5"
-                      : "border-border bg-white hover:border-primary/50"
+                      : "border-border bg-card hover:border-primary/50"
                   } shadow-xs`}
                 >
                   {inCart && (
@@ -1939,7 +2046,7 @@ function BillingScreen({
 
       {/* Right: Order Summary */}
       <div
-        className="bg-white border-t md:border-t-0 md:border-l border-border flex flex-col"
+        className="bg-card border-t md:border-t-0 md:border-l border-border flex flex-col"
         data-ocid="billing.cart_panel"
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
@@ -2056,7 +2163,7 @@ function BillingScreen({
         <div className="px-4 pb-4">
           <Button
             data-ocid="billing.payment_button"
-            className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl"
+            className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl glow-btn"
             disabled={cart.length === 0}
             onClick={onProceedToPayment}
           >
@@ -2074,17 +2181,25 @@ function PaymentScreen({
   total,
   paymentMethod,
   cashReceived,
+  upiId,
+  paymentSuccess,
   onSetMethod,
   onSetCashReceived,
   onComplete,
+  onPrintBill,
+  onBackToBilling,
   onBack,
 }: {
   total: number;
   paymentMethod: PaymentMethod;
   cashReceived: string;
+  upiId: string;
+  paymentSuccess: boolean;
   onSetMethod: (m: PaymentMethod) => void;
   onSetCashReceived: (v: string) => void;
   onComplete: () => void;
+  onPrintBill: () => void;
+  onBackToBilling: () => void;
   onBack: () => void;
 }) {
   const change =
@@ -2092,98 +2207,319 @@ function PaymentScreen({
       ? Number.parseFloat(cashReceived) - total
       : null;
 
+  // UPI deep link for QR
+  const upiDeepLink = upiId
+    ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent("Gobinath Hotel")}&am=${total.toFixed(2)}&cu=INR`
+    : "";
+
+  // ── Payment Success Screen ──────────────────────────────────────────────
+  if (paymentSuccess) {
+    return (
+      <div
+        className="max-w-md mx-auto p-6 flex flex-col items-center justify-center min-h-[calc(100vh-160px)] gap-6"
+        data-ocid="payment.success_state"
+      >
+        {/* Success icon */}
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          className="w-24 h-24 rounded-full flex items-center justify-center bg-primary/15"
+        >
+          <CheckCircle2 className="h-14 w-14 text-primary" />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="text-center space-y-1"
+        >
+          <h2 className="text-2xl font-bold font-display text-primary">
+            Payment Successful
+          </h2>
+          <p className="text-muted-foreground text-sm font-body">
+            {paymentMethod === "Cash"
+              ? "Cash payment received"
+              : "QR payment confirmed"}
+          </p>
+          <p className="font-bold text-xl mt-1 text-primary">
+            {formatINR(total)}
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="w-full space-y-3"
+        >
+          <Button
+            data-ocid="payment.print_button"
+            className="w-full h-14 text-base font-bold rounded-2xl gap-2 bg-primary hover:bg-primary/90 glow-btn"
+            onClick={onPrintBill}
+          >
+            <Printer className="h-5 w-5" />
+            Print Bill
+          </Button>
+          <Button
+            data-ocid="payment.back_to_billing_button"
+            variant="outline"
+            className="w-full h-12 rounded-2xl border-2 font-semibold gap-2 border-primary text-primary"
+            onClick={onBackToBilling}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Back to Billing
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ── Normal Payment Screen ───────────────────────────────────────────────
   return (
-    <div className="max-w-md mx-auto p-6 space-y-6">
+    <div className="max-w-md mx-auto p-5 space-y-5" data-ocid="payment.page">
+      {/* Header */}
       <div className="flex items-center gap-3">
         <button
           type="button"
+          data-ocid="payment.back_button"
           onClick={onBack}
           className="p-2 rounded-xl hover:bg-secondary transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h2 className="font-display text-xl font-bold">Payment</h2>
+        <h2
+          className="font-bold text-xl"
+          style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+        >
+          Payment
+        </h2>
       </div>
 
-      {/* Amount */}
-      <div className="bg-primary rounded-2xl p-6 text-center text-primary-foreground">
-        <p className="text-sm opacity-80 mb-1">Total Amount</p>
-        <p className="font-display text-4xl font-bold">{formatINR(total)}</p>
+      {/* Total Amount card */}
+      <div
+        className="rounded-2xl p-6 text-center shadow-lg border border-primary/30"
+        style={{
+          background:
+            "linear-gradient(135deg, oklch(0.175 0.028 270) 0%, oklch(0.235 0.032 268) 100%)",
+        }}
+        data-ocid="payment.total_card"
+      >
+        <p className="text-sm text-muted-foreground mb-1 font-body uppercase tracking-wider">
+          Total Amount
+        </p>
+        <p className="text-4xl font-bold font-display text-primary">
+          {formatINR(total)}
+        </p>
       </div>
 
-      {/* Payment method */}
+      {/* Payment Method selector */}
       <div>
-        <Label className="text-sm font-semibold mb-3 block">
+        <p className="text-sm font-semibold mb-3 font-body text-muted-foreground uppercase tracking-wide">
           Payment Method
-        </Label>
-        <div className="grid grid-cols-3 gap-3">
-          {(["Cash", "UPI", "Card"] as PaymentMethod[]).map((method) => (
-            <button
-              type="button"
-              key={method}
-              data-ocid={`payment.${method.toLowerCase()}_button`}
-              onClick={() => onSetMethod(method)}
-              className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all min-h-[80px] ${
-                paymentMethod === method
-                  ? "border-primary bg-primary text-white"
-                  : "border-border bg-white hover:border-primary/50"
-              }`}
+        </p>
+        <div
+          className="grid grid-cols-2 gap-4"
+          data-ocid="payment.method_select"
+        >
+          {/* Cash */}
+          <button
+            type="button"
+            data-ocid="payment.cash_button"
+            onClick={() => onSetMethod("Cash")}
+            className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all min-h-[100px] active:scale-95 ${
+              paymentMethod === "Cash"
+                ? "border-primary bg-primary text-primary-foreground shadow-glow-orange"
+                : "border-border bg-card hover:border-primary/50 hover:bg-primary/8 text-foreground"
+            }`}
+          >
+            <Banknote
+              className={`h-8 w-8 ${paymentMethod === "Cash" ? "text-primary-foreground" : "text-primary"}`}
+            />
+            <span
+              className={`text-base font-bold ${paymentMethod === "Cash" ? "text-primary-foreground" : "text-primary"}`}
             >
-              <span className="text-2xl">
-                {method === "Cash" ? "💵" : method === "UPI" ? "📱" : "💳"}
-              </span>
-              <span className="text-sm font-semibold">{method}</span>
-            </button>
-          ))}
+              Cash
+            </span>
+          </button>
+
+          {/* QR Payment */}
+          <button
+            type="button"
+            data-ocid="payment.qr_button"
+            onClick={() => onSetMethod("QR")}
+            className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all min-h-[100px] active:scale-95 ${
+              paymentMethod === "QR"
+                ? "border-primary bg-primary/90 text-primary-foreground shadow-glow-orange"
+                : "border-border bg-card hover:border-primary/50 hover:bg-primary/8 text-foreground"
+            }`}
+          >
+            <QrCode
+              className={`h-8 w-8 ${paymentMethod === "QR" ? "text-primary-foreground" : "text-primary"}`}
+            />
+            <span
+              className={`text-base font-bold ${paymentMethod === "QR" ? "text-primary-foreground" : "text-primary"}`}
+            >
+              QR Pay
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* Cash change calc */}
+      {/* Cash: Amount Received + Balance */}
       {paymentMethod === "Cash" && (
-        <div className="space-y-3">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="pos-card p-4 space-y-4"
+          data-ocid="payment.cash_panel"
+        >
           <div>
-            <Label className="text-sm mb-1.5 block">Amount Received (₹)</Label>
+            <Label className="text-sm font-semibold font-body mb-2 block">
+              Amount Received (₹)
+            </Label>
             <Input
               type="number"
               inputMode="decimal"
-              placeholder={`Min ${total.toFixed(2)}`}
+              placeholder={`Enter amount (min ₹${total.toFixed(2)})`}
               value={cashReceived}
               onChange={(e) => onSetCashReceived(e.target.value)}
-              className="h-12 text-base"
+              className="h-14 text-lg font-bold rounded-xl border-2 focus-visible:ring-primary"
+              data-ocid="payment.cash_received.input"
+              autoFocus
             />
           </div>
+
+          {/* Balance calculation */}
           {change !== null && (
-            <div
-              className={`p-3 rounded-xl text-center ${change >= 0 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={`rounded-xl p-4 text-center ${
+                change >= 0
+                  ? "bg-card border border-primary/30"
+                  : "bg-destructive/10 border border-destructive/30"
+              }`}
+              data-ocid={
+                change >= 0
+                  ? "payment.balance_success_state"
+                  : "payment.balance_error_state"
+              }
             >
-              <p className="text-sm font-medium">
-                {change >= 0
-                  ? `Change to return: ${formatINR(change)}`
-                  : `Insufficient amount by ${formatINR(Math.abs(change))}`}
+              {change >= 0 ? (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">
+                    Balance to Return
+                  </p>
+                  <p className="text-2xl font-bold text-primary">
+                    {formatINR(change)}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm font-semibold text-destructive">
+                  Amount short by {formatINR(Math.abs(change))}
+                </p>
+              )}
+            </motion.div>
+          )}
+
+          {/* Summary row */}
+          <div className="space-y-1.5 pt-1 border-t border-border">
+            <div className="flex justify-between text-sm text-muted-foreground font-body">
+              <span>Total</span>
+              <span className="font-semibold text-foreground">
+                {formatINR(total)}
+              </span>
+            </div>
+            {cashReceived && (
+              <div className="flex justify-between text-sm text-muted-foreground font-body">
+                <span>Received</span>
+                <span className="font-semibold text-foreground">
+                  {formatINR(Number.parseFloat(cashReceived) || 0)}
+                </span>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* QR Payment */}
+      {paymentMethod === "QR" && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="pos-card p-5 text-center space-y-4"
+          data-ocid="payment.qr_panel"
+        >
+          {upiId ? (
+            <>
+              <div>
+                <p className="text-sm font-semibold font-body text-muted-foreground uppercase tracking-wide mb-1">
+                  Scan to Pay
+                </p>
+                <p className="text-lg font-bold text-primary">
+                  {formatINR(total)}
+                </p>
+              </div>
+              {/* QR Code */}
+              <div className="flex justify-center">
+                <div className="p-4 rounded-2xl border-2 border-primary/50 inline-block bg-white">
+                  <QRCodeSVG
+                    value={upiDeepLink}
+                    size={180}
+                    level="M"
+                    bgColor="#ffffff"
+                    fgColor="#1E1E2E"
+                  />
+                </div>
+              </div>
+              <div className="bg-primary/8 rounded-xl p-3 text-sm border border-primary/20">
+                <p className="text-primary font-semibold font-body">
+                  UPI ID: {upiId}
+                </p>
+                <p className="text-muted-foreground text-xs mt-0.5 font-body">
+                  Works with GPay, PhonePe, Paytm and all UPI apps
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground font-body">
+                Ask customer to scan and confirm payment, then tap Complete
+                Payment
+              </p>
+            </>
+          ) : (
+            <div className="py-6 space-y-3" data-ocid="payment.qr_no_upi_state">
+              <QrCode className="h-12 w-12 mx-auto opacity-30" />
+              <p className="font-semibold text-sm text-foreground">
+                No UPI ID configured
+              </p>
+              <p className="text-xs text-muted-foreground font-body">
+                Please go to Settings and add your UPI ID to enable QR payments.
               </p>
             </div>
           )}
-        </div>
+        </motion.div>
       )}
 
-      {/* Complete button */}
+      {/* Complete Payment button */}
       <Button
         data-ocid="payment.complete_button"
-        className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl"
+        className="w-full h-14 text-base font-bold rounded-2xl gap-2 bg-primary hover:bg-primary/90 glow-btn"
         disabled={
           paymentMethod === "Cash" &&
           (!cashReceived || Number.parseFloat(cashReceived) < total)
         }
         onClick={onComplete}
       >
-        <Check className="h-5 w-5 mr-2" />
+        <Check className="h-5 w-5" />
         Complete Payment
       </Button>
 
       <button
         type="button"
+        data-ocid="payment.cancel_button"
         onClick={onBack}
-        className="w-full text-center text-sm text-muted-foreground hover:text-foreground py-2"
+        className="w-full text-center text-sm text-muted-foreground hover:text-foreground py-2 rounded-xl hover:bg-secondary transition-colors font-body"
       >
         ← Back to Billing
       </button>
@@ -2208,150 +2544,252 @@ function BillPreviewScreen({
   onNewOrder: () => void;
   onDashboard: () => void;
 }) {
+  const receiptDate = new Date(order.createdAt);
+  const dateStr = receiptDate
+    .toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+    .replace(/\//g, "-"); // converts to DD-MM-YYYY format
+  const timeStr = receiptDate.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  function handlePrint() {
+    window.print();
+  }
+
+  // Separator lines for thermal receipt
+  const SEP_MAJOR = "================================";
+  const SEP_MINOR = "--------------------------------";
+
   return (
-    <div className="max-w-sm mx-auto p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-xl font-bold">Bill Preview</h2>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => window.print()}
-            className="gap-1"
-          >
-            <Printer className="h-4 w-4" />
-            Print
-          </Button>
-        </div>
+    <div
+      className="max-w-sm mx-auto p-4 space-y-4"
+      data-ocid="bill_preview.page"
+    >
+      {/* Page header */}
+      <div className="flex items-center gap-3">
+        <h2 className="font-display text-xl font-bold flex-1">Bill Preview</h2>
+        <Badge
+          variant="outline"
+          className="font-mono text-xs border-primary text-primary"
+        >
+          {order.billNumber}
+        </Badge>
       </div>
 
-      {/* Receipt */}
+      {/* Thermal Receipt — 58mm layout */}
       <div
         id="bill-print-area"
-        className="bg-white rounded-2xl shadow-card border border-border p-5 font-mono text-sm"
+        className="bg-white rounded-lg border border-dashed border-gray-300 shadow-sm mx-auto"
+        style={{
+          maxWidth: "230px",
+          padding: "12px",
+          fontFamily: "'Courier New', Courier, monospace",
+        }}
       >
-        {/* Header */}
-        <div className="text-center mb-3">
-          <p className="font-display text-lg font-bold text-foreground">
-            Gobinath Hotel
+        {/* Major separator */}
+        <div className="font-mono text-[10px] overflow-hidden whitespace-nowrap text-black">
+          {SEP_MAJOR}
+        </div>
+
+        {/* Hotel header */}
+        <div className="text-center my-1">
+          <p className="font-mono font-bold text-[13px] tracking-wide text-black">
+            GOBINATH HOTEL
           </p>
-          <p className="text-xs text-muted-foreground">{branch.name}</p>
+          <p className="font-mono text-[11px] text-black">
+            {branch.short.toUpperCase()}
+          </p>
           {gstSettings.enabled && gstSettings.gstNumber && (
-            <p className="text-xs text-muted-foreground">
+            <p className="font-mono text-[10px] text-black">
               GSTIN: {gstSettings.gstNumber}
             </p>
           )}
-          <Separator className="my-2" />
+        </div>
+
+        {/* Major separator */}
+        <div className="font-mono text-[10px] overflow-hidden whitespace-nowrap text-black">
+          {SEP_MAJOR}
         </div>
 
         {/* Bill info */}
-        <div className="text-xs mb-3 space-y-0.5">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Bill No:</span>
-            <span className="font-semibold">{order.billNumber}</span>
+        <div className="my-1 space-y-0">
+          <div className="flex font-mono text-[11px] text-black">
+            <span className="w-20">Bill No </span>
+            <span className="font-bold">: {order.billNumber}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Date:</span>
-            <span>{formatDate(order.createdAt)}</span>
+          <div className="flex font-mono text-[11px] text-black">
+            <span className="w-20">Date </span>
+            <span>: {dateStr}</span>
+          </div>
+          <div className="flex font-mono text-[11px] text-black">
+            <span className="w-20">Time </span>
+            <span>: {timeStr}</span>
           </div>
           {order.customerName && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Customer:</span>
-              <span>{order.customerName}</span>
+            <div className="flex font-mono text-[11px] text-black">
+              <span className="w-20">Customer</span>
+              <span className="truncate">: {order.customerName}</span>
             </div>
           )}
           {order.customerMobile && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Mobile:</span>
-              <span>{order.customerMobile}</span>
+            <div className="flex font-mono text-[11px] text-black">
+              <span className="w-20">Mobile </span>
+              <span>: {order.customerMobile}</span>
             </div>
           )}
         </div>
 
-        <Separator className="my-2" />
+        {/* Major separator */}
+        <div className="font-mono text-[10px] overflow-hidden whitespace-nowrap text-black">
+          {SEP_MAJOR}
+        </div>
+
+        {/* Items header */}
+        <div className="flex font-mono text-[11px] font-bold text-black my-1">
+          <span className="flex-1">Item</span>
+          <span className="w-8 text-center">Qty</span>
+          <span className="w-20 text-right">Price</span>
+        </div>
+
+        {/* Minor separator */}
+        <div className="font-mono text-[10px] overflow-hidden whitespace-nowrap text-black">
+          {SEP_MINOR}
+        </div>
 
         {/* Items */}
-        <div className="space-y-1.5 mb-3">
-          <div className="flex text-xs font-semibold text-muted-foreground">
-            <span className="flex-1">Item</span>
-            <span className="w-8 text-center">Qty</span>
-            <span className="w-16 text-right">Rate</span>
-            <span className="w-16 text-right">Amt</span>
-          </div>
-          <Separator className="my-1" />
+        <div className="space-y-0 my-1">
           {order.items.map((item) => (
-            <div key={item.menuItemId} className="flex text-xs">
-              <span className="flex-1 truncate">{item.name}</span>
+            <div
+              key={item.menuItemId}
+              className="flex font-mono text-[11px] text-black"
+            >
+              <span className="flex-1 truncate pr-1">
+                {item.name.length > 14 ? item.name.slice(0, 14) : item.name}
+              </span>
               <span className="w-8 text-center">{item.quantity}</span>
-              <span className="w-16 text-right">{formatINR(item.price)}</span>
-              <span className="w-16 text-right">
-                {formatINR(item.price * item.quantity)}
+              <span className="w-20 text-right">
+                &#8377;{(item.price * item.quantity).toFixed(0)}
               </span>
             </div>
           ))}
         </div>
 
-        <Separator className="my-2" />
+        {/* Minor separator */}
+        <div className="font-mono text-[10px] overflow-hidden whitespace-nowrap text-black">
+          {SEP_MINOR}
+        </div>
 
-        {/* Totals */}
-        <div className="space-y-1 text-xs">
-          <div className="flex justify-between">
-            <span>Subtotal</span>
-            <span>{formatINR(order.subtotal)}</span>
+        {/* Subtotal / GST */}
+        <div className="my-1 space-y-0">
+          <div className="flex font-mono text-[11px] text-black">
+            <span className="flex-1">Subtotal</span>
+            <span className="w-20 text-right">
+              &#8377;{order.subtotal.toFixed(2)}
+            </span>
           </div>
           {order.gstAmount > 0 && (
-            <div className="flex justify-between">
-              <span>GST ({gstSettings.percentage}%)</span>
-              <span>{formatINR(order.gstAmount)}</span>
+            <div className="flex font-mono text-[11px] text-black">
+              <span className="flex-1">GST ({gstSettings.percentage}%)</span>
+              <span className="w-20 text-right">
+                &#8377;{order.gstAmount.toFixed(2)}
+              </span>
             </div>
           )}
-          <Separator className="my-1" />
-          <div className="flex justify-between font-bold text-sm">
-            <span>TOTAL</span>
-            <span>{formatINR(order.total)}</span>
+        </div>
+
+        {/* Major separator */}
+        <div className="font-mono text-[10px] overflow-hidden whitespace-nowrap text-black">
+          {SEP_MAJOR}
+        </div>
+
+        {/* Total */}
+        <div className="flex font-mono font-bold text-[13px] text-black my-1">
+          <span className="flex-1">TOTAL</span>
+          <span className="w-20 text-right">
+            &#8377;{order.total.toFixed(2)}
+          </span>
+        </div>
+
+        {/* Major separator */}
+        <div className="font-mono text-[10px] overflow-hidden whitespace-nowrap text-black">
+          {SEP_MAJOR}
+        </div>
+
+        {/* Payment */}
+        <div className="my-1">
+          <div className="flex font-mono text-[11px] text-black">
+            <span className="w-20">Payment </span>
+            <span className="font-semibold">: {order.paymentMethod}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Payment</span>
-            <span>{order.paymentMethod}</span>
-          </div>
+        </div>
+
+        {/* Major separator */}
+        <div className="font-mono text-[10px] overflow-hidden whitespace-nowrap text-black">
+          {SEP_MAJOR}
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-4 text-xs text-muted-foreground">
-          <p>Thank you for dining with us!</p>
-          <p>Please visit again 😊</p>
+        <div className="text-center my-1">
+          <p className="font-mono font-bold text-[11px] text-black">
+            ** Thank You **
+          </p>
+          <p className="font-mono text-[11px] text-black">Visit Again</p>
+        </div>
+
+        {/* Major separator */}
+        <div className="font-mono text-[10px] overflow-hidden whitespace-nowrap text-black">
+          {SEP_MAJOR}
+        </div>
+
+        {/* Brand footer */}
+        <div className="text-center mt-1">
+          <p className="font-mono text-[10px] text-black opacity-70">
+            Powered By NextYU Solution
+          </p>
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Action buttons */}
+      <div className="space-y-3 mt-4">
+        {/* Primary: Print Bill */}
         <Button
+          data-ocid="bill_preview.print_button"
+          className="w-full h-14 text-base font-bold bg-primary hover:bg-primary/90 rounded-2xl gap-2 glow-btn"
+          onClick={handlePrint}
+        >
+          <Printer className="h-5 w-5" />
+          Print Bill
+        </Button>
+
+        {/* Secondary: Back to Billing */}
+        <Button
+          data-ocid="bill_preview.new_order_button"
           variant="outline"
-          className="h-12 rounded-xl"
+          className="w-full h-12 rounded-2xl border-2 border-primary text-primary font-semibold gap-2"
           onClick={onNewOrder}
         >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          New Order
+          <RefreshCw className="h-4 w-4" />
+          Back to Billing
         </Button>
+
+        {/* Tertiary: Dashboard (owner only) */}
         {role === "owner" && (
-          <Button className="h-12 rounded-xl bg-primary" onClick={onDashboard}>
-            Dashboard
-          </Button>
+          <button
+            type="button"
+            data-ocid="bill_preview.dashboard_button"
+            className="w-full text-center text-sm text-muted-foreground hover:text-foreground py-2 rounded-xl hover:bg-secondary transition-colors"
+            onClick={onDashboard}
+          >
+            Go to Dashboard
+          </button>
         )}
       </div>
-
-      {/* Footer */}
-      <p className="text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()}. Built with love using{" "}
-        <a
-          href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-          className="underline"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          caffeine.ai
-        </a>
-      </p>
     </div>
   );
 }
@@ -2363,7 +2801,7 @@ function MenuScreen({
   branchId,
   onUpdate,
   allItems,
-  onBack,
+  onBack: _onBack,
 }: {
   menuItems: MenuItem[];
   branchId: number;
@@ -2491,14 +2929,6 @@ function MenuScreen({
     <div className="max-w-4xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            data-ocid="menu.back_button"
-            onClick={onBack}
-            className="flex items-center gap-1.5 h-10 px-3 rounded-xl hover:bg-secondary transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back
-          </button>
           <h2 className="font-display text-xl font-bold">Menu Management</h2>
         </div>
         <Button
@@ -2545,9 +2975,9 @@ function MenuScreen({
             <div
               key={item.id}
               data-ocid={`menu.item.${idx + 1}`}
-              className="bg-white rounded-xl border border-border p-3 flex items-center gap-3 shadow-xs"
+              className="pos-card p-3 flex items-center gap-3"
             >
-              <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#F8F5F0] flex items-center justify-center flex-shrink-0 border border-border">
+              <div className="w-10 h-10 rounded-lg overflow-hidden bg-secondary/50 flex items-center justify-center flex-shrink-0 border border-border">
                 {item.imageUrl ? (
                   <img
                     src={item.imageUrl}
@@ -2599,13 +3029,13 @@ function MenuScreen({
 
       {/* Add/Edit Dialog */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-sm rounded-2xl bg-[#F8F5F0] shadow-xl p-0 overflow-hidden">
+        <DialogContent className="max-w-sm rounded-2xl bg-card shadow-xl p-0 overflow-hidden border border-border">
           {/* Dialog Header */}
-          <div className="bg-[#0F5132] px-5 py-4">
-            <DialogTitle className="font-display text-white text-lg font-bold tracking-wide">
+          <div className="bg-primary px-5 py-4">
+            <DialogTitle className="font-display text-primary-foreground text-lg font-bold tracking-wide">
               {editItem ? "Edit Menu Item" : "Add Menu Item"}
             </DialogTitle>
-            <p className="text-white/70 text-xs mt-0.5 font-body">
+            <p className="text-primary-foreground/70 text-xs mt-0.5 font-body">
               Fill in the details below
             </p>
           </div>
@@ -2613,8 +3043,8 @@ function MenuScreen({
           <div className="px-5 py-4 space-y-4">
             {/* Item Name */}
             <div>
-              <Label className="text-xs font-semibold text-[#0F5132] uppercase tracking-wide font-body">
-                Item Name <span className="text-red-500">*</span>
+              <Label className="text-xs font-semibold text-primary uppercase tracking-wide font-body">
+                Item Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 value={form.name}
@@ -2622,7 +3052,7 @@ function MenuScreen({
                   setForm((f) => ({ ...f, name: e.target.value }))
                 }
                 placeholder="e.g. Masala Dosa"
-                className="mt-1.5 rounded-xl border-border/60 bg-white shadow-sm focus-visible:ring-[#0F5132] focus-visible:ring-2 h-11 font-body"
+                className="mt-1.5 rounded-xl bg-input border-border h-11 font-body"
                 data-ocid="menu.item_name.input"
               />
             </div>
@@ -2630,8 +3060,8 @@ function MenuScreen({
             {/* Price + Category row */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs font-semibold text-[#0F5132] uppercase tracking-wide font-body">
-                  Price (₹) <span className="text-red-500">*</span>
+                <Label className="text-xs font-semibold text-primary uppercase tracking-wide font-body">
+                  Price (₹) <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   type="number"
@@ -2641,12 +3071,12 @@ function MenuScreen({
                     setForm((f) => ({ ...f, price: e.target.value }))
                   }
                   placeholder="0.00"
-                  className="mt-1.5 rounded-xl border-border/60 bg-white shadow-sm focus-visible:ring-[#0F5132] focus-visible:ring-2 h-11 font-body"
+                  className="mt-1.5 rounded-xl bg-input border-border h-11 font-body"
                   data-ocid="menu.item_price.input"
                 />
               </div>
               <div>
-                <Label className="text-xs font-semibold text-[#0F5132] uppercase tracking-wide font-body">
+                <Label className="text-xs font-semibold text-primary uppercase tracking-wide font-body">
                   Category
                 </Label>
                 <Select
@@ -2656,7 +3086,7 @@ function MenuScreen({
                   }
                 >
                   <SelectTrigger
-                    className="mt-1.5 rounded-xl border-border/60 bg-white shadow-sm focus-visible:ring-[#0F5132] h-11 font-body"
+                    className="mt-1.5 rounded-xl bg-input border-border h-11 font-body"
                     data-ocid="menu.category.select"
                   >
                     <SelectValue />
@@ -2674,13 +3104,13 @@ function MenuScreen({
 
             {/* Food Image Upload */}
             <div>
-              <Label className="text-xs font-semibold text-[#0F5132] uppercase tracking-wide font-body">
+              <Label className="text-xs font-semibold text-primary uppercase tracking-wide font-body">
                 Food Image
               </Label>
               <div className="mt-1.5">
                 {form.imageUrl ? (
                   /* Image preview card */
-                  <div className="relative rounded-xl overflow-hidden border border-border/60 bg-white shadow-sm">
+                  <div className="relative rounded-xl overflow-hidden border border-border bg-secondary/30 shadow-sm">
                     <img
                       src={form.imageUrl}
                       alt="Food preview"
@@ -2698,13 +3128,13 @@ function MenuScreen({
                 ) : (
                   /* Upload button */
                   <label
-                    className="flex flex-col items-center justify-center gap-2 w-full h-28 rounded-xl border-2 border-dashed border-[#FF7A00]/50 bg-white cursor-pointer hover:bg-[#FF7A00]/5 transition-colors"
+                    className="flex flex-col items-center justify-center gap-2 w-full h-28 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
                     data-ocid="menu.upload_button"
                   >
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#FF7A00]/10">
-                      <ImageIcon className="h-5 w-5 text-[#FF7A00]" />
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/15">
+                      <ImageIcon className="h-5 w-5 text-primary" />
                     </div>
-                    <span className="text-xs font-medium text-[#FF7A00] font-body">
+                    <span className="text-xs font-medium text-primary font-body">
                       Upload Food Image
                     </span>
                     <span className="text-[10px] text-muted-foreground font-body">
@@ -2727,19 +3157,19 @@ function MenuScreen({
             </div>
 
             {/* Available toggle */}
-            <div className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 border border-border/60 shadow-sm">
+            <div className="flex items-center gap-3 bg-secondary/40 rounded-xl px-3 py-2.5 border border-border">
               <Switch
                 id="available"
                 checked={form.available}
                 onCheckedChange={(v) =>
                   setForm((f) => ({ ...f, available: v }))
                 }
-                className="data-[state=checked]:bg-[#0F5132]"
+                className="data-[state=checked]:bg-primary"
               />
               <div>
                 <Label
                   htmlFor="available"
-                  className="text-sm font-semibold cursor-pointer font-body text-[#0F5132]"
+                  className="text-sm font-semibold cursor-pointer font-body text-primary"
                 >
                   Available
                 </Label>
@@ -2754,7 +3184,7 @@ function MenuScreen({
             <Button
               variant="outline"
               onClick={() => setShowModal(false)}
-              className="flex-1 rounded-xl h-11 border-[#0F5132]/30 text-[#0F5132] font-body"
+              className="flex-1 rounded-xl h-11 border-primary/30 text-primary font-body"
               data-ocid="menu.cancel_button"
             >
               Cancel
@@ -2762,7 +3192,7 @@ function MenuScreen({
             <Button
               onClick={handleSave}
               disabled={!form.name.trim() || !form.price}
-              className="flex-1 rounded-xl h-11 bg-[#0F5132] hover:bg-[#0F5132]/90 text-white font-body"
+              className="flex-1 rounded-xl h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-body glow-btn"
               data-ocid="menu.save_button"
             >
               {editItem ? "Save Changes" : "Add Item"}
@@ -2805,7 +3235,7 @@ function MenuScreen({
 
 function ReportsScreen({
   orders,
-  onBack,
+  onBack: _onBack,
 }: { orders: Order[]; onBack: () => void }) {
   const today = new Date();
   const [startDate, setStartDate] = useState(() => {
@@ -2814,6 +3244,8 @@ function ReportsScreen({
     return d.toISOString().slice(0, 10);
   });
   const [endDate, setEndDate] = useState(today.toISOString().slice(0, 10));
+  const [activeTab, setActiveTab] = useState("analytics");
+  const [branchFilter, setBranchFilter] = useState<"all" | "1" | "2">("all");
 
   const filteredOrders = useMemo(() => {
     const start = new Date(startDate).getTime();
@@ -2850,16 +3282,22 @@ function ReportsScreen({
     }));
   }, [filteredOrders, startDate, endDate]);
 
-  // Payment method breakdown
+  // Payment method breakdown (supports new "QR" and legacy "UPI"/"Card")
   const paymentData = useMemo(() => {
-    const counts = { Cash: 0, UPI: 0, Card: 0 };
+    const counts: Record<string, number> = { Cash: 0, QR: 0 };
     for (const o of filteredOrders) {
-      counts[o.paymentMethod] += o.total;
+      // Handle new "QR" and legacy "UPI"/"Card" payment methods
+      const pm = o.paymentMethod as string;
+      const key = pm === "UPI" || pm === "Card" ? "QR" : pm;
+      counts[key] = (counts[key] || 0) + o.total;
     }
     return [
-      { name: "Cash", value: Math.round(counts.Cash), color: "#1B4332" },
-      { name: "UPI", value: Math.round(counts.UPI), color: "#FF7F11" },
-      { name: "Card", value: Math.round(counts.Card), color: "#4A90D9" },
+      { name: "Cash", value: Math.round(counts.Cash || 0), color: "#FF7A45" },
+      {
+        name: "QR Pay",
+        value: Math.round(counts.QR || 0),
+        color: "oklch(0.52 0.09 210)",
+      },
     ].filter((d) => d.value > 0);
   }, [filteredOrders]);
 
@@ -2877,183 +3315,346 @@ function ReportsScreen({
     ];
   }, [orders]);
 
+  // Bill History filtered
+  const billHistoryOrders = useMemo(() => {
+    const sorted = [...orders].sort((a, b) => b.createdAt - a.createdAt);
+    if (branchFilter === "all") return sorted;
+    return sorted.filter((o) => o.branchId === Number(branchFilter));
+  }, [orders, branchFilter]);
+
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-5">
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          data-ocid="reports.back_button"
-          onClick={onBack}
-          className="flex items-center gap-1.5 h-10 px-3 rounded-xl hover:bg-secondary transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back
-        </button>
         <h2 className="font-display text-xl font-bold">Reports</h2>
       </div>
 
-      {/* Date range */}
-      <div className="bg-white rounded-2xl border border-border p-4 shadow-xs">
-        <p className="text-sm font-semibold mb-3">Date Range</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-xs text-muted-foreground">From</Label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="mt-1 h-10"
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">To</Label>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="mt-1 h-10"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl p-4 shadow-card text-center border border-border">
-          <p className="text-lg font-bold text-primary">
-            {formatINR(totalRevenue)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Revenue</p>
-        </div>
-        <div className="bg-white rounded-2xl p-4 shadow-card text-center border border-border">
-          <p className="text-lg font-bold text-accent">
-            {filteredOrders.length}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Orders</p>
-        </div>
-        <div className="bg-white rounded-2xl p-4 shadow-card text-center border border-border">
-          <p className="text-lg font-bold text-foreground">
-            {formatINR(avgOrder)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Avg Order</p>
-        </div>
-      </div>
-
-      {/* Daily sales chart */}
-      <div className="bg-white rounded-2xl border border-border p-4 shadow-xs">
-        <p className="text-sm font-semibold mb-3">Daily Sales (₹)</p>
-        {dailyData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart
-              data={dailyData}
-              margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#f0f0f0"
-              />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `₹${v}`} />
-              <Tooltip formatter={(v) => [`₹${v}`, "Sales"]} />
-              <Bar
-                dataKey="sales"
-                fill="oklch(0.35 0.09 151)"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <div
-            className="text-center py-8 text-muted-foreground text-sm"
-            data-ocid="reports.empty_state"
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        data-ocid="reports.tab"
+      >
+        <TabsList className="grid grid-cols-2 w-full rounded-xl">
+          <TabsTrigger
+            value="analytics"
+            data-ocid="reports.analytics_tab"
+            className="rounded-lg"
           >
-            No data for selected range
-          </div>
-        )}
-      </div>
+            Analytics
+          </TabsTrigger>
+          <TabsTrigger
+            value="bill-history"
+            data-ocid="reports.bill_history_tab"
+            className="rounded-lg"
+          >
+            Bill History
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Payment method */}
-      {paymentData.length > 0 && (
-        <div className="bg-white rounded-2xl border border-border p-4 shadow-xs">
-          <p className="text-sm font-semibold mb-3">Payment Methods</p>
-          <div className="flex items-center gap-4">
-            <ResponsiveContainer width="50%" height={150}>
-              <PieChart>
-                <Pie
-                  data={paymentData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={40}
-                  outerRadius={65}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {paymentData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v) => [`₹${v}`]} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex-1 space-y-2">
-              {paymentData.map((d) => (
-                <div
-                  key={d.name}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-sm"
-                      style={{ background: d.color }}
-                    />
-                    <span>{d.name}</span>
-                  </div>
-                  <span className="font-semibold">₹{d.value}</span>
-                </div>
-              ))}
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-5 mt-4">
+          {/* Date range */}
+          <div className="pos-card p-4">
+            <p className="text-sm font-semibold mb-3">Date Range</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">From</Label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="mt-1 h-10"
+                  data-ocid="reports.start_date.input"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">To</Label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="mt-1 h-10"
+                  data-ocid="reports.end_date.input"
+                />
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Branch comparison */}
-      <div className="bg-white rounded-2xl border border-border p-4 shadow-xs">
-        <p className="text-sm font-semibold mb-3">
-          Branch Comparison (All Time)
-        </p>
-        <ResponsiveContainer width="100%" height={140}>
-          <BarChart
-            data={branchData}
-            margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              stroke="#f0f0f0"
-            />
-            <XAxis dataKey="branch" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `₹${v}`} />
-            <Tooltip formatter={(v) => [`₹${v}`, "Sales"]} />
-            <Bar
-              dataKey="sales"
-              fill="oklch(0.72 0.18 52)"
-              radius={[4, 4, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+          {/* Summary */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="pos-card p-4 text-center">
+              <p className="text-lg font-bold text-primary">
+                {formatINR(totalRevenue)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Revenue</p>
+            </div>
+            <div className="pos-card p-4 text-center">
+              <p className="text-lg font-bold text-accent">
+                {filteredOrders.length}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Orders</p>
+            </div>
+            <div className="pos-card p-4 text-center">
+              <p className="text-lg font-bold text-foreground">
+                {formatINR(avgOrder)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Avg Order</p>
+            </div>
+          </div>
+
+          {/* Daily sales chart */}
+          <div className="pos-card p-4">
+            <p className="text-sm font-semibold mb-3">Daily Sales (&#8377;)</p>
+            {dailyData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart
+                  data={dailyData}
+                  margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#3A3A4F"
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: "#B8B8C5" }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "#B8B8C5" }}
+                    tickFormatter={(v) => `₹${v}`}
+                  />
+                  <Tooltip formatter={(v) => [`₹${v}`, "Sales"]} />
+                  <Bar dataKey="sales" fill="#FF7A45" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div
+                className="text-center py-8 text-muted-foreground text-sm"
+                data-ocid="reports.empty_state"
+              >
+                No data for selected range
+              </div>
+            )}
+          </div>
+
+          {/* Payment method */}
+          {paymentData.length > 0 && (
+            <div className="pos-card p-4">
+              <p className="text-sm font-semibold mb-3">Payment Methods</p>
+              <div className="flex items-center gap-4">
+                <ResponsiveContainer width="50%" height={150}>
+                  <PieChart>
+                    <Pie
+                      data={paymentData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={65}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {paymentData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v) => [`₹${v}`]} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex-1 space-y-2">
+                  {paymentData.map((d) => (
+                    <div
+                      key={d.name}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-sm"
+                          style={{ background: d.color }}
+                        />
+                        <span>{d.name}</span>
+                      </div>
+                      <span className="font-semibold">&#8377;{d.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Branch comparison */}
+          <div className="pos-card p-4">
+            <p className="text-sm font-semibold mb-3">
+              Branch Comparison (All Time)
+            </p>
+            <ResponsiveContainer width="100%" height={140}>
+              <BarChart
+                data={branchData}
+                margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#3A3A4F"
+                />
+                <XAxis
+                  dataKey="branch"
+                  tick={{ fontSize: 11, fill: "#B8B8C5" }}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "#B8B8C5" }}
+                  tickFormatter={(v) => `₹${v}`}
+                />
+                <Tooltip formatter={(v) => [`₹${v}`, "Sales"]} />
+                <Bar dataKey="sales" fill="#FF7A45" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </TabsContent>
+
+        {/* Bill History Tab */}
+        <TabsContent value="bill-history" className="space-y-4 mt-4">
+          {/* Branch filter */}
+          <div className="flex items-center gap-3">
+            <p className="text-sm font-semibold text-muted-foreground whitespace-nowrap">
+              Filter by Branch:
+            </p>
+            <Select
+              value={branchFilter}
+              onValueChange={(v) => setBranchFilter(v as "all" | "1" | "2")}
+            >
+              <SelectTrigger
+                className="h-9 rounded-xl flex-1 max-w-xs"
+                data-ocid="reports.branch_filter.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Branches</SelectItem>
+                <SelectItem value="1">
+                  Gobinath Hotel &#8211; Sethurapatti
+                </SelectItem>
+                <SelectItem value="2">
+                  Gobinath Hotel &#8211; JJ College
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Bill list */}
+          {billHistoryOrders.length === 0 ? (
+            <div
+              className="text-center py-12 text-muted-foreground"
+              data-ocid="reports.bill_history_empty_state"
+            >
+              <BarChart2 className="h-8 w-8 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No bills found</p>
+            </div>
+          ) : (
+            <div className="space-y-2" data-ocid="reports.bill_history.list">
+              {billHistoryOrders.map((order, idx) => {
+                const branchObj = BRANCHES.find((b) => b.id === order.branchId);
+                return (
+                  <div
+                    key={order.id}
+                    data-ocid={`reports.bill_history.item.${idx + 1}`}
+                    className="pos-card p-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono font-bold text-sm text-primary">
+                            {order.billNumber}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] py-0 px-1.5 ${order.branchId === 1 ? "border-primary/60 text-primary" : "border-accent/60 text-accent"}`}
+                          >
+                            {branchObj?.short}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] py-0 px-1.5"
+                          >
+                            {order.paymentMethod}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(order.createdAt).toLocaleString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                          {order.customerName && ` · ${order.customerName}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {order.items.length} item
+                          {order.items.length !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                      <p className="font-bold text-sm text-primary whitespace-nowrap">
+                        {formatINR(order.total)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
 
 // ── EmployeesScreen ───────────────────────────────────────────────────────────
 
+// Helper computations
+function totalAdvanceTaken(emp: Employee): number {
+  return emp.advances.reduce((s, a) => s + a.amount, 0);
+}
+function remainingBalance(emp: Employee): number {
+  return emp.salary - totalAdvanceTaken(emp);
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00`);
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+const ROLE_COLORS: Record<Employee["role"], string> = {
+  Waiter: "bg-blue-900/50 text-blue-300 border-blue-700/50",
+  Cook: "bg-orange-900/50 text-orange-300 border-orange-700/50",
+  Cleaner: "bg-purple-900/50 text-purple-300 border-purple-700/50",
+  Manager: "bg-emerald-900/50 text-emerald-300 border-emerald-700/50",
+  Cashier: "bg-teal-900/50 text-teal-300 border-teal-700/50",
+};
+
+const AVATAR_COLORS = [
+  "bg-emerald-600",
+  "bg-orange-500",
+  "bg-blue-600",
+  "bg-purple-600",
+  "bg-teal-600",
+  "bg-rose-600",
+];
+
 function EmployeesScreen({
   employees,
   branchId,
   onUpdate,
   allEmployees,
-  onBack,
+  onBack: _onBack,
 }: {
   employees: Employee[];
   branchId: number;
@@ -3064,17 +3665,42 @@ function EmployeesScreen({
   const [showModal, setShowModal] = useState(false);
   const [editEmp, setEditEmp] = useState<Employee | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [advanceTarget, setAdvanceTarget] = useState<Employee | null>(null);
+  const [expandedHistory, setExpandedHistory] = useState<Set<string>>(
+    new Set(),
+  );
 
   const [form, setForm] = useState({
     name: "",
-    role: "",
+    mobile: "",
+    address: "",
+    role: "Waiter" as Employee["role"],
+    salaryType: "Monthly" as Employee["salaryType"],
     salary: "",
+    advanceAmount: "",
+    advanceDate: todayStr(),
     salaryPaid: false,
+  });
+
+  const [advanceForm, setAdvanceForm] = useState({
+    amount: "",
+    date: todayStr(),
+    reason: "",
   });
 
   function openAdd() {
     setEditEmp(null);
-    setForm({ name: "", role: "", salary: "", salaryPaid: false });
+    setForm({
+      name: "",
+      mobile: "",
+      address: "",
+      role: "Waiter",
+      salaryType: "Monthly",
+      salary: "",
+      advanceAmount: "",
+      advanceDate: todayStr(),
+      salaryPaid: false,
+    });
     setShowModal(true);
   }
 
@@ -3082,15 +3708,20 @@ function EmployeesScreen({
     setEditEmp(emp);
     setForm({
       name: emp.name,
+      mobile: emp.mobile,
+      address: emp.address,
       role: emp.role,
+      salaryType: emp.salaryType,
       salary: String(emp.salary),
+      advanceAmount: "",
+      advanceDate: todayStr(),
       salaryPaid: emp.salaryPaid,
     });
     setShowModal(true);
   }
 
   function handleSave() {
-    if (!form.name.trim() || !form.role.trim() || !form.salary) return;
+    if (!form.name.trim() || !form.salary) return;
     if (editEmp) {
       onUpdate(
         allEmployees.map((e) =>
@@ -3098,7 +3729,10 @@ function EmployeesScreen({
             ? {
                 ...e,
                 name: form.name,
+                mobile: form.mobile,
+                address: form.address,
                 role: form.role,
+                salaryType: form.salaryType,
                 salary: Number.parseFloat(form.salary),
                 salaryPaid: form.salaryPaid,
               }
@@ -3107,13 +3741,29 @@ function EmployeesScreen({
       );
       toast.success("Employee updated");
     } else {
+      const initialAdvances: AdvanceRecord[] = [];
+      const advAmt = Number.parseFloat(form.advanceAmount);
+      if (advAmt > 0) {
+        initialAdvances.push({
+          id: generateId(),
+          amount: advAmt,
+          date: form.advanceDate,
+          reason: "",
+          createdAt: Date.now(),
+        });
+      }
       const newEmp: Employee = {
         id: generateId(),
         branchId,
+        employeeId: generateEmployeeId(allEmployees),
         name: form.name,
+        mobile: form.mobile,
+        address: form.address,
         role: form.role,
+        salaryType: form.salaryType,
         salary: Number.parseFloat(form.salary),
         salaryPaid: form.salaryPaid,
+        advances: initialAdvances,
       };
       onUpdate([...allEmployees, newEmp]);
       toast.success("Employee added");
@@ -3127,189 +3777,591 @@ function EmployeesScreen({
     setDeleteTarget(null);
   }
 
-  function toggleSalaryPaid(id: string) {
+  function handleAddAdvance() {
+    if (!advanceTarget || !advanceForm.amount) return;
+    const newAdvance: AdvanceRecord = {
+      id: generateId(),
+      amount: Number.parseFloat(advanceForm.amount),
+      date: advanceForm.date,
+      reason: advanceForm.reason,
+      createdAt: Date.now(),
+    };
     onUpdate(
       allEmployees.map((e) =>
-        e.id === id ? { ...e, salaryPaid: !e.salaryPaid } : e,
+        e.id === advanceTarget.id
+          ? { ...e, advances: [...e.advances, newAdvance] }
+          : e,
       ),
     );
+    toast.success(
+      `Advance ₹${advanceForm.amount} added for ${advanceTarget.name}`,
+    );
+    setAdvanceTarget(null);
+    setAdvanceForm({ amount: "", date: todayStr(), reason: "" });
+  }
+
+  function toggleHistory(empId: string) {
+    setExpandedHistory((prev) => {
+      const next = new Set(prev);
+      if (next.has(empId)) next.delete(empId);
+      else next.add(empId);
+      return next;
+    });
   }
 
   const branchEmployees = employees.filter((e) => e.branchId === branchId);
 
+  // Financial summary
+  const totalSalaryExpense = branchEmployees.reduce((s, e) => s + e.salary, 0);
+  const totalAdvanceGiven = branchEmployees.reduce(
+    (s, e) => s + totalAdvanceTaken(e),
+    0,
+  );
+  const pendingCount = branchEmployees.filter((e) => !e.salaryPaid).length;
+
+  const summaryCards = [
+    {
+      label: "Total Employees",
+      value: String(branchEmployees.length),
+      icon: <Users className="h-5 w-5 text-primary" />,
+      valueClass: "text-primary",
+    },
+    {
+      label: "Total Salary Expense",
+      value: `₹${totalSalaryExpense.toLocaleString("en-IN")}`,
+      icon: <IndianRupee className="h-5 w-5 text-primary" />,
+      valueClass: "text-primary",
+    },
+    {
+      label: "Total Advance Given",
+      value: `₹${totalAdvanceGiven.toLocaleString("en-IN")}`,
+      icon: <Wallet className="h-5 w-5 text-accent" />,
+      valueClass: "text-accent",
+    },
+    {
+      label: "Pending Salary",
+      value: `${pendingCount} Pending`,
+      icon: <Clock className="h-5 w-5 text-destructive" />,
+      valueClass: "text-destructive",
+    },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-4">
+    <div className="max-w-4xl mx-auto p-4 space-y-5" data-ocid="employees.page">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            data-ocid="employee.back_button"
-            onClick={onBack}
-            className="flex items-center gap-1.5 h-10 px-3 rounded-xl hover:bg-secondary transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back
-          </button>
-          <h2 className="font-display text-xl font-bold">Employees</h2>
-        </div>
+        <h2 className="font-display text-2xl font-bold">Employees</h2>
         <Button
-          data-ocid="employee.add_button"
+          data-ocid="employees.add_button"
           onClick={openAdd}
-          className="h-10 bg-primary hover:bg-primary/90 rounded-xl gap-1"
-          size="sm"
+          className="h-11 bg-primary hover:bg-primary/90 rounded-xl gap-2 font-body font-semibold"
         >
           <Plus className="h-4 w-4" />
           Add Employee
         </Button>
       </div>
 
+      {/* Financial Summary */}
+      <div
+        className="grid grid-cols-2 md:grid-cols-4 gap-3"
+        data-ocid="employees.summary_section"
+      >
+        {summaryCards.map((card) => (
+          <div key={card.label} className="pos-card rounded-2xl p-4">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-2 bg-primary/15">
+              {card.icon}
+            </div>
+            <p
+              className={`text-xl font-bold font-display leading-tight ${card.valueClass}`}
+            >
+              {card.value}
+            </p>
+            <p className="text-xs font-body mt-0.5 text-muted-foreground">
+              {card.label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Employee Cards */}
       {branchEmployees.length === 0 ? (
         <div
-          className="text-center py-12 text-muted-foreground"
-          data-ocid="employee.empty_state"
+          className="text-center py-16 text-muted-foreground pos-card"
+          data-ocid="employees.empty_state"
         >
-          <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
-          <p>No employees added yet</p>
+          <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <p className="font-display text-lg font-semibold">
+            No employees added yet
+          </p>
+          <p className="text-sm font-body mt-1 opacity-70">
+            Tap "Add Employee" to get started
+          </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {branchEmployees.map((emp, idx) => (
-            <div
-              key={emp.id}
-              data-ocid={`employee.item.${idx + 1}`}
-              className="bg-white rounded-xl border border-border p-4 shadow-xs"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
-                    {emp.name.charAt(0).toUpperCase()}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {branchEmployees.map((emp, idx) => {
+            const advance = totalAdvanceTaken(emp);
+            const balance = remainingBalance(emp);
+            const avatarColor = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+            const isHistoryOpen = expandedHistory.has(emp.id);
+
+            return (
+              <div
+                key={emp.id}
+                data-ocid={`employees.item.${idx + 1}`}
+                className="pos-card p-0 overflow-hidden"
+              >
+                {/* Card Header */}
+                <div className="p-4 pb-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-12 h-12 rounded-full ${avatarColor} flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm`}
+                      >
+                        {emp.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-display font-bold text-base text-foreground">
+                          {emp.name}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span className="text-xs text-muted-foreground font-body font-medium">
+                            {emp.employeeId}
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full border font-body font-medium ${ROLE_COLORS[emp.role]}`}
+                          >
+                            {emp.role}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        type="button"
+                        data-ocid={`employees.advance_button.${idx + 1}`}
+                        onClick={() => {
+                          setAdvanceTarget(emp);
+                          setAdvanceForm({
+                            amount: "",
+                            date: todayStr(),
+                            reason: "",
+                          });
+                        }}
+                        className="p-2 rounded-xl hover:bg-primary/15 text-primary transition-colors"
+                        title="Add Advance"
+                      >
+                        <Wallet className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        data-ocid={`employees.edit_button.${idx + 1}`}
+                        onClick={() => openEdit(emp)}
+                        className="p-2 rounded-xl hover:bg-secondary text-muted-foreground transition-colors"
+                        title="Edit Employee"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        data-ocid={`employees.delete_button.${idx + 1}`}
+                        onClick={() => setDeleteTarget(emp.id)}
+                        className="p-2 rounded-xl hover:bg-destructive/10 text-destructive transition-colors"
+                        title="Delete Employee"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-sm">{emp.name}</p>
-                    <p className="text-xs text-muted-foreground">{emp.role}</p>
+
+                  {/* Contact info */}
+                  {emp.mobile && (
+                    <div className="flex items-center gap-1.5 mt-2 ml-15">
+                      <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="text-xs font-body text-muted-foreground">
+                        {emp.mobile}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Salary Details */}
+                <div className="px-4 pb-3 space-y-2">
+                  <div className="bg-secondary/40 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-body text-muted-foreground">
+                        {emp.salaryType} Salary
+                      </span>
+                      <span className="text-sm font-bold font-display text-primary">
+                        ₹{emp.salary.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    {advance > 0 && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-body text-accent">
+                            Advance Taken
+                          </span>
+                          <span className="text-sm font-semibold text-accent">
+                            −₹{advance.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                        <div className="border-t border-border/40 pt-2 flex items-center justify-between">
+                          <span className="text-xs font-body text-foreground font-medium">
+                            Balance
+                          </span>
+                          <span
+                            className={`text-sm font-bold ${balance >= 0 ? "text-primary" : "text-destructive"}`}
+                          >
+                            ₹{balance.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Status Badge + Toggle */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={emp.salaryPaid}
+                        onCheckedChange={() =>
+                          onUpdate(
+                            allEmployees.map((e) =>
+                              e.id === emp.id
+                                ? { ...e, salaryPaid: !e.salaryPaid }
+                                : e,
+                            ),
+                          )
+                        }
+                        className="data-[state=checked]:bg-green-600"
+                        data-ocid={"employees.status.switch"}
+                      />
+                      <span className="text-xs font-body text-muted-foreground">
+                        {emp.salaryPaid ? "Mark as Pending" : "Mark as Paid"}
+                      </span>
+                    </div>
+                    <span
+                      className={`text-xs font-semibold font-body px-3 py-1 rounded-full border ${
+                        emp.salaryPaid
+                          ? "bg-green-900/50 text-green-300 border-green-700/50"
+                          : "bg-orange-900/50 text-orange-300 border-orange-700/50"
+                      }`}
+                    >
+                      {emp.salaryPaid ? "Paid" : "Pending"}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+
+                {/* Advance History Toggle */}
+                <div className="border-t border-border/40">
                   <button
                     type="button"
-                    data-ocid={`employee.edit_button.${idx + 1}`}
-                    onClick={() => openEdit(emp)}
-                    className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground"
+                    data-ocid={`employees.advance_history_toggle.${idx + 1}`}
+                    onClick={() => toggleHistory(emp.id)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-secondary/40 transition-colors"
                   >
-                    <Edit3 className="h-4 w-4" />
+                    <div className="flex items-center gap-2 text-xs font-semibold font-body text-muted-foreground">
+                      <History className="h-3.5 w-3.5" />
+                      Advance History ({emp.advances.length})
+                    </div>
+                    {isHistoryOpen ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
                   </button>
-                  <button
-                    type="button"
-                    data-ocid={`employee.delete_button.${idx + 1}`}
-                    onClick={() => setDeleteTarget(emp.id)}
-                    className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+
+                  {isHistoryOpen && (
+                    <div
+                      data-ocid={`employees.advance_history.${idx + 1}`}
+                      className="px-4 pb-3 space-y-2"
+                    >
+                      {emp.advances.length === 0 ? (
+                        <p className="text-xs font-body text-muted-foreground py-2 text-center">
+                          No advances recorded
+                        </p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {[...emp.advances]
+                            .sort((a, b) => b.createdAt - a.createdAt)
+                            .map((adv) => (
+                              <div
+                                key={adv.id}
+                                className="flex items-start justify-between text-xs font-body bg-primary/8 rounded-lg px-3 py-2"
+                              >
+                                <div>
+                                  <span className="text-primary font-semibold">
+                                    {formatDate(adv.date)}
+                                  </span>
+                                  {adv.reason && (
+                                    <span className="text-muted-foreground ml-1">
+                                      · {adv.reason}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="font-bold text-primary ml-2 flex-shrink-0">
+                                  ₹{adv.amount.toLocaleString("en-IN")}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-                <div>
-                  <span className="text-xs text-muted-foreground">
-                    Salary:{" "}
-                  </span>
-                  <span className="text-sm font-bold text-primary">
-                    {formatINR(emp.salary)}/month
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Paid</span>
-                  <Switch
-                    checked={emp.salaryPaid}
-                    onCheckedChange={() => toggleSalaryPaid(emp.id)}
-                    className="data-[state=checked]:bg-green-600"
-                    data-ocid={`employee.switch.${idx + 1}`}
-                  />
-                  <Badge
-                    variant={emp.salaryPaid ? "default" : "outline"}
-                    className={`text-xs ${emp.salaryPaid ? "bg-green-600" : "text-orange-600 border-orange-300"}`}
-                  >
-                    {emp.salaryPaid ? "Paid" : "Pending"}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* Add/Edit Dialog */}
+      {/* ── Add/Edit Employee Modal ── */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-sm rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editEmp ? "Edit Employee" : "Add Employee"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
+        <DialogContent
+          className="max-w-md rounded-2xl overflow-hidden p-0"
+          data-ocid="employees.modal.dialog"
+        >
+          {/* Modal header */}
+          <div className="px-5 py-4 bg-primary">
+            <DialogHeader>
+              <DialogTitle className="font-display text-primary-foreground font-bold text-lg">
+                {editEmp ? "Edit Employee" : "Add Employee"}
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+
+          <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto bg-card">
+            {/* Employee ID */}
             <div>
-              <Label className="text-sm">Name *</Label>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Employee ID
+              </Label>
+              <Input
+                value={
+                  editEmp
+                    ? editEmp.employeeId
+                    : generateEmployeeId(allEmployees)
+                }
+                readOnly
+                className="mt-1.5 h-11 rounded-xl bg-muted/60 font-mono text-sm cursor-default"
+              />
+            </div>
+
+            {/* Name */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Employee Name <span className="text-destructive">*</span>
+              </Label>
               <Input
                 value={form.name}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, name: e.target.value }))
                 }
-                placeholder="Employee name"
-                className="mt-1"
-                data-ocid="employee.name.input"
+                placeholder="Full name"
+                className="mt-1.5 h-11 rounded-xl"
+                data-ocid="employees.name.input"
               />
             </div>
+
+            {/* Mobile */}
             <div>
-              <Label className="text-sm">Role *</Label>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Mobile Number
+              </Label>
               <Input
-                value={form.role}
+                value={form.mobile}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, role: e.target.value }))
+                  setForm((f) => ({ ...f, mobile: e.target.value }))
                 }
-                placeholder="e.g. Waiter, Cook"
-                className="mt-1"
-                data-ocid="employee.role.input"
+                placeholder="10-digit mobile number"
+                inputMode="tel"
+                className="mt-1.5 h-11 rounded-xl"
+                data-ocid="employees.mobile.input"
               />
             </div>
+
+            {/* Address */}
             <div>
-              <Label className="text-sm">Salary (₹) *</Label>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Address
+              </Label>
+              <Textarea
+                value={form.address}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, address: e.target.value }))
+                }
+                placeholder="Street address, city"
+                rows={2}
+                className="mt-1.5 rounded-xl resize-none"
+                data-ocid="employees.address.textarea"
+              />
+            </div>
+
+            {/* Role */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Role
+              </Label>
+              <Select
+                value={form.role}
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, role: v as Employee["role"] }))
+                }
+              >
+                <SelectTrigger
+                  className="mt-1.5 h-11 rounded-xl"
+                  data-ocid="employees.role.select"
+                >
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(
+                    [
+                      "Waiter",
+                      "Cook",
+                      "Cleaner",
+                      "Manager",
+                      "Cashier",
+                    ] as Employee["role"][]
+                  ).map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Salary Type */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Salary Type
+              </Label>
+              <Select
+                value={form.salaryType}
+                onValueChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    salaryType: v as Employee["salaryType"],
+                  }))
+                }
+              >
+                <SelectTrigger
+                  className="mt-1.5 h-11 rounded-xl"
+                  data-ocid="employees.salary_type.select"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Monthly">Monthly Salary</SelectItem>
+                  <SelectItem value="Daily">Daily Salary</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Salary Amount */}
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Salary Amount (₹) <span className="text-destructive">*</span>
+              </Label>
               <Input
                 type="number"
+                inputMode="numeric"
                 value={form.salary}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, salary: e.target.value }))
                 }
-                placeholder="Monthly salary"
-                className="mt-1"
-                data-ocid="employee.salary.input"
+                placeholder={
+                  form.salaryType === "Monthly" ? "e.g. 12000" : "e.g. 500"
+                }
+                className="mt-1.5 h-11 rounded-xl"
+                data-ocid="employees.salary.input"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="salary-paid"
-                checked={form.salaryPaid}
-                onCheckedChange={(v) =>
-                  setForm((f) => ({ ...f, salaryPaid: v }))
-                }
-                className="data-[state=checked]:bg-green-600"
-              />
-              <Label htmlFor="salary-paid" className="text-sm cursor-pointer">
-                Salary Paid
-              </Label>
+
+            {/* Initial Advance (Add only) */}
+            {!editEmp && (
+              <>
+                <div>
+                  <Label className="text-sm font-body font-medium text-foreground">
+                    Initial Advance Amount (₹){" "}
+                    <span className="text-xs text-muted-foreground font-normal">
+                      (optional)
+                    </span>
+                  </Label>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={form.advanceAmount}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, advanceAmount: e.target.value }))
+                    }
+                    placeholder="0"
+                    className="mt-1.5 h-11 rounded-xl"
+                    data-ocid="employees.advance_amount.input"
+                  />
+                </div>
+                {Number.parseFloat(form.advanceAmount) > 0 && (
+                  <div>
+                    <Label className="text-sm font-body font-medium text-foreground">
+                      Advance Date
+                    </Label>
+                    <Input
+                      type="date"
+                      value={form.advanceDate}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, advanceDate: e.target.value }))
+                      }
+                      className="mt-1.5 h-11 rounded-xl"
+                      data-ocid="employees.advance_date.input"
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Salary Status */}
+            <div className="flex items-center justify-between pt-1">
+              <div>
+                <Label className="text-sm font-body font-medium text-foreground">
+                  Salary Status
+                </Label>
+                <p className="text-xs text-muted-foreground font-body mt-0.5">
+                  Current payment status
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-body text-muted-foreground">
+                  {form.salaryPaid ? "Paid" : "Pending"}
+                </span>
+                <Switch
+                  checked={form.salaryPaid}
+                  onCheckedChange={(v) =>
+                    setForm((f) => ({ ...f, salaryPaid: v }))
+                  }
+                  className="data-[state=checked]:bg-green-600"
+                  data-ocid="employees.status.switch"
+                />
+              </div>
             </div>
           </div>
-          <DialogFooter className="gap-2">
+
+          <DialogFooter className="flex gap-2 p-4 border-t border-border bg-card">
             <Button
               variant="outline"
               onClick={() => setShowModal(false)}
-              data-ocid="employee.cancel_button"
+              className="flex-1 h-11 rounded-xl font-body border-border text-foreground"
+              data-ocid="employees.cancel_button"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!form.name.trim() || !form.role.trim() || !form.salary}
-              className="bg-primary"
-              data-ocid="employee.save_button"
+              disabled={!form.name.trim() || !form.salary}
+              className="flex-1 h-11 rounded-xl font-body font-semibold bg-primary hover:bg-primary/90 text-primary-foreground glow-btn"
+              data-ocid="employees.save_button"
             >
               {editEmp ? "Save Changes" : "Add Employee"}
             </Button>
@@ -3317,26 +4369,174 @@ function EmployeesScreen({
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirm */}
+      {/* ── Add Advance Modal ── */}
+      <Dialog
+        open={!!advanceTarget}
+        onOpenChange={(o) => !o && setAdvanceTarget(null)}
+      >
+        <DialogContent
+          className="max-w-sm rounded-2xl overflow-hidden p-0"
+          data-ocid="employees.advance_modal.dialog"
+        >
+          <div className="px-5 py-4 bg-primary">
+            <DialogHeader>
+              <DialogTitle className="font-display text-primary-foreground font-bold text-lg">
+                Add Advance
+              </DialogTitle>
+              {advanceTarget && (
+                <p className="text-primary-foreground/70 text-sm font-body mt-0.5">
+                  For: {advanceTarget.name}
+                </p>
+              )}
+            </DialogHeader>
+          </div>
+
+          <div className="p-5 space-y-4 bg-card">
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Advance Amount (₹) <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={advanceForm.amount}
+                onChange={(e) =>
+                  setAdvanceForm((f) => ({ ...f, amount: e.target.value }))
+                }
+                placeholder="e.g. 2000"
+                className="mt-1.5 h-11 rounded-xl"
+                data-ocid="employees.advance_amount.input"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                <Calendar className="inline h-3.5 w-3.5 mr-1" />
+                Advance Date
+              </Label>
+              <Input
+                type="date"
+                value={advanceForm.date}
+                onChange={(e) =>
+                  setAdvanceForm((f) => ({ ...f, date: e.target.value }))
+                }
+                className="mt-1.5 h-11 rounded-xl"
+                data-ocid="employees.advance_date.input"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-body font-medium text-foreground">
+                Reason / Notes{" "}
+                <span className="text-xs text-muted-foreground font-normal">
+                  (optional)
+                </span>
+              </Label>
+              <Textarea
+                value={advanceForm.reason}
+                onChange={(e) =>
+                  setAdvanceForm((f) => ({ ...f, reason: e.target.value }))
+                }
+                placeholder="e.g. Medical emergency, Festival advance"
+                rows={2}
+                className="mt-1.5 rounded-xl resize-none"
+              />
+            </div>
+
+            {/* Preview */}
+            {Number.parseFloat(advanceForm.amount) > 0 && advanceTarget && (
+              <div className="bg-primary/8 border border-primary/20 rounded-xl p-3 text-sm space-y-1 font-body">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Monthly Salary</span>
+                  <span className="font-semibold text-foreground">
+                    ₹{advanceTarget.salary.toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <div className="flex justify-between text-primary">
+                  <span>Advance</span>
+                  <span className="font-semibold">
+                    ₹
+                    {Number.parseFloat(advanceForm.amount).toLocaleString(
+                      "en-IN",
+                    )}
+                  </span>
+                </div>
+                <Separator className="my-1" />
+                <div className="flex justify-between font-bold">
+                  <span>Balance</span>
+                  <span
+                    className={
+                      advanceTarget.salary -
+                        totalAdvanceTaken(advanceTarget) -
+                        Number.parseFloat(advanceForm.amount) >=
+                      0
+                        ? "text-primary"
+                        : "text-destructive"
+                    }
+                  >
+                    ₹
+                    {(
+                      advanceTarget.salary -
+                      totalAdvanceTaken(advanceTarget) -
+                      Number.parseFloat(advanceForm.amount)
+                    ).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex gap-2 p-4 border-t border-border bg-card">
+            <Button
+              variant="outline"
+              onClick={() => setAdvanceTarget(null)}
+              className="flex-1 h-11 rounded-xl font-body border-border text-foreground"
+              data-ocid="employees.advance_cancel_button"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddAdvance}
+              disabled={
+                !advanceForm.amount ||
+                Number.parseFloat(advanceForm.amount) <= 0
+              }
+              className="flex-1 h-11 rounded-xl font-body font-semibold bg-primary hover:bg-primary/90 text-primary-foreground glow-btn"
+              data-ocid="employees.advance_save_button"
+            >
+              Add Advance
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirm ── */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
       >
-        <AlertDialogContent className="max-w-sm rounded-2xl">
+        <AlertDialogContent
+          className="max-w-sm rounded-2xl"
+          data-ocid="employees.delete_confirm.dialog"
+        >
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Employee?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone.
+            <AlertDialogTitle className="font-display">
+              Remove Employee?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-body">
+              This will permanently remove the employee and all their advance
+              records. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-ocid="employee.cancel_button">
+            <AlertDialogCancel
+              data-ocid="employees.cancel_button"
+              className="rounded-xl font-body"
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 rounded-xl font-body"
               onClick={() => deleteTarget && handleDelete(deleteTarget)}
-              data-ocid="employee.confirm_button"
+              data-ocid="employees.confirm_button"
             >
               Remove
             </AlertDialogAction>
@@ -3347,41 +4547,51 @@ function EmployeesScreen({
   );
 }
 
-// ── GSTSettingsScreen ─────────────────────────────────────────────────────────
+// ── SettingsScreen ────────────────────────────────────────────────────────────
 
-function GSTSettingsScreen({
+function SettingsScreen({
   gstSettings,
+  upiSettings,
   branchId,
-  onUpdate,
-  onBack,
+  onUpdateGst,
+  onUpdateUpi,
+  onBack: _onBack,
 }: {
   gstSettings: GSTSettings[];
+  upiSettings: UpiSettings[];
   branchId: number;
-  onUpdate: (settings: GSTSettings[]) => void;
+  onUpdateGst: (settings: GSTSettings[]) => void;
+  onUpdateUpi: (settings: UpiSettings[]) => void;
   onBack: () => void;
 }) {
-  const current = gstSettings.find((g) => g.branchId === branchId) ?? {
+  const currentGst = gstSettings.find((g) => g.branchId === branchId) ?? {
     branchId,
     enabled: false,
     gstNumber: "",
     percentage: 5,
   };
+  const currentUpi = upiSettings.find((u) => u.branchId === branchId) ?? {
+    branchId,
+    upiId: "",
+  };
 
-  const [form, setForm] = useState({
-    enabled: current.enabled,
-    gstNumber: current.gstNumber,
-    percentage: String(current.percentage),
+  const [gstForm, setGstForm] = useState({
+    enabled: currentGst.enabled,
+    gstNumber: currentGst.gstNumber,
+    percentage: String(currentGst.percentage),
   });
 
-  function handleSave() {
+  const [upiId, setUpiId] = useState(currentUpi.upiId);
+
+  function handleSaveGst() {
     const updated = gstSettings.some((g) => g.branchId === branchId)
       ? gstSettings.map((g) =>
           g.branchId === branchId
             ? {
                 ...g,
-                enabled: form.enabled,
-                gstNumber: form.gstNumber,
-                percentage: Number.parseFloat(form.percentage) || 5,
+                enabled: gstForm.enabled,
+                gstNumber: gstForm.gstNumber,
+                percentage: Number.parseFloat(gstForm.percentage) || 5,
               }
             : g,
         )
@@ -3389,124 +4599,207 @@ function GSTSettingsScreen({
           ...gstSettings,
           {
             branchId,
-            enabled: form.enabled,
-            gstNumber: form.gstNumber,
-            percentage: Number.parseFloat(form.percentage) || 5,
+            enabled: gstForm.enabled,
+            gstNumber: gstForm.gstNumber,
+            percentage: Number.parseFloat(gstForm.percentage) || 5,
           },
         ];
-    onUpdate(updated);
+    onUpdateGst(updated);
     toast.success("GST settings saved!");
+  }
+
+  function handleSaveUpi() {
+    const updated = upiSettings.some((u) => u.branchId === branchId)
+      ? upiSettings.map((u) =>
+          u.branchId === branchId ? { ...u, upiId: upiId.trim() } : u,
+        )
+      : [...upiSettings, { branchId, upiId: upiId.trim() }];
+    onUpdateUpi(updated);
+    toast.success("UPI settings saved!");
   }
 
   const branch = BRANCHES.find((b) => b.id === branchId);
 
+  // Preview UPI QR
+  const previewQr = upiId.trim()
+    ? `upi://pay?pa=${encodeURIComponent(upiId.trim())}&pn=${encodeURIComponent("Gobinath Hotel")}&am=1&cu=INR`
+    : "";
+
   return (
     <div className="max-w-md mx-auto p-4 space-y-5">
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          data-ocid="settings.back_button"
-          onClick={onBack}
-          className="flex items-center gap-1.5 h-10 px-3 rounded-xl hover:bg-secondary transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back
-        </button>
-        <h2 className="font-display text-xl font-bold">GST Settings</h2>
+        <h2 className="font-display text-xl font-bold">Settings</h2>
       </div>
-      <p className="text-sm text-muted-foreground">{branch?.name}</p>
+      <p className="text-sm text-muted-foreground font-body">{branch?.name}</p>
 
-      <div className="bg-white rounded-2xl border border-border p-5 shadow-xs space-y-5">
+      {/* ── UPI Payment Settings ─────────────────────────── */}
+      <div className="pos-card p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-primary/12">
+            <QrCode className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm">UPI Payment (QR)</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Used to generate QR codes at billing
+            </p>
+          </div>
+        </div>
+
+        <Separator />
+
+        <div>
+          <Label className="text-sm font-medium font-body">UPI ID</Label>
+          <Input
+            value={upiId}
+            onChange={(e) => setUpiId(e.target.value)}
+            placeholder="e.g. 9876543210@paytm or name@ybl"
+            className="mt-1.5 h-11 rounded-xl"
+            data-ocid="settings.upi_id.input"
+          />
+          <p className="text-xs text-muted-foreground mt-1 font-body">
+            Your UPI ID — payments will go to this account
+          </p>
+        </div>
+
+        {/* Live QR preview */}
+        {previewQr && (
+          <div className="flex flex-col items-center gap-2 p-3 bg-primary/8 rounded-xl border border-primary/20">
+            <p className="text-xs font-semibold text-primary font-body">
+              QR Preview
+            </p>
+            <div className="p-2 bg-white rounded-lg border border-primary/30">
+              <QRCodeSVG
+                value={previewQr}
+                size={100}
+                level="M"
+                fgColor="#1E1E2E"
+              />
+            </div>
+            <p className="text-xs text-primary font-body">{upiId.trim()}</p>
+          </div>
+        )}
+
+        <Button
+          data-ocid="settings.save_upi_button"
+          className="w-full h-11 font-semibold rounded-xl gap-2 bg-primary hover:bg-primary/90 text-primary-foreground glow-btn"
+          onClick={handleSaveUpi}
+        >
+          <Check className="h-4 w-4" />
+          Save UPI Settings
+        </Button>
+      </div>
+
+      {/* ── GST Settings ─────────────────────────────────── */}
+      <div className="pos-card p-5 space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-primary/12">
+            <IndianRupee className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm">GST Settings</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Apply GST on bills for this branch
+            </p>
+          </div>
+        </div>
+
+        <Separator />
+
         {/* Enable toggle */}
         <div className="flex items-center justify-between">
           <div>
             <p className="font-semibold text-sm">Enable GST</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Apply GST on bills for this branch
+              Include GST in billing calculations
             </p>
           </div>
           <Switch
             data-ocid="settings.gst_toggle"
-            checked={form.enabled}
-            onCheckedChange={(v) => setForm((f) => ({ ...f, enabled: v }))}
+            checked={gstForm.enabled}
+            onCheckedChange={(v) => setGstForm((f) => ({ ...f, enabled: v }))}
             className="data-[state=checked]:bg-primary"
           />
         </div>
 
-        <Separator />
-
         {/* GST Number */}
         <div>
-          <Label className="text-sm font-medium">GST Number (GSTIN)</Label>
+          <Label className="text-sm font-medium font-body">
+            GST Number (GSTIN)
+          </Label>
           <Input
-            value={form.gstNumber}
+            value={gstForm.gstNumber}
             onChange={(e) =>
-              setForm((f) => ({ ...f, gstNumber: e.target.value }))
+              setGstForm((f) => ({ ...f, gstNumber: e.target.value }))
             }
             placeholder="e.g. 33XXXXX1234X1ZX"
-            className="mt-1.5"
-            disabled={!form.enabled}
+            className="mt-1.5 h-11 rounded-xl"
+            disabled={!gstForm.enabled}
             data-ocid="settings.gst_number.input"
           />
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1 font-body">
             Your 15-digit GST Identification Number
           </p>
         </div>
 
         {/* GST Percentage */}
         <div>
-          <Label className="text-sm font-medium">GST Rate (%)</Label>
+          <Label className="text-sm font-medium font-body">GST Rate (%)</Label>
           <Input
             type="number"
             inputMode="decimal"
-            value={form.percentage}
+            value={gstForm.percentage}
             onChange={(e) =>
-              setForm((f) => ({ ...f, percentage: e.target.value }))
+              setGstForm((f) => ({ ...f, percentage: e.target.value }))
             }
             placeholder="5"
-            className="mt-1.5 max-w-[120px]"
-            disabled={!form.enabled}
+            className="mt-1.5 max-w-[120px] h-11 rounded-xl"
+            disabled={!gstForm.enabled}
             min={0}
             max={28}
             data-ocid="settings.gst_percentage.input"
           />
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1 font-body">
             Common rates: 5%, 12%, 18%, 28%
           </p>
         </div>
 
         {/* Preview */}
-        {form.enabled && (
-          <div className="bg-secondary rounded-xl p-3 text-sm space-y-1">
+        {gstForm.enabled && (
+          <div className="bg-card border border-border rounded-xl p-3 text-sm space-y-1">
             <p className="font-medium text-foreground">Preview (₹100 order)</p>
-            <div className="flex justify-between text-muted-foreground">
+            <div className="flex justify-between text-muted-foreground font-body">
               <span>Subtotal</span>
               <span>₹100.00</span>
             </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>GST ({form.percentage}%)</span>
+            <div className="flex justify-between text-muted-foreground font-body">
+              <span>GST ({gstForm.percentage}%)</span>
               <span>
-                ₹{(Number.parseFloat(form.percentage) || 0).toFixed(2)}
+                ₹{(Number.parseFloat(gstForm.percentage) || 0).toFixed(2)}
               </span>
             </div>
             <Separator className="my-1" />
             <div className="flex justify-between font-bold">
               <span>Total</span>
               <span>
-                ₹{(100 + (Number.parseFloat(form.percentage) || 0)).toFixed(2)}
+                ₹
+                {(100 + (Number.parseFloat(gstForm.percentage) || 0)).toFixed(
+                  2,
+                )}
               </span>
             </div>
           </div>
         )}
-      </div>
 
-      <Button
-        data-ocid="settings.save_button"
-        className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl"
-        onClick={handleSave}
-      >
-        <Check className="h-5 w-5 mr-2" />
-        Save Settings
-      </Button>
+        <Button
+          data-ocid="settings.save_button"
+          className="w-full h-11 font-semibold bg-primary hover:bg-primary/90 rounded-xl gap-2"
+          onClick={handleSaveGst}
+        >
+          <Check className="h-4 w-4" />
+          Save GST Settings
+        </Button>
+      </div>
     </div>
   );
 }

@@ -3,25 +3,71 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Dark POS Theme (DEFAULT) ─────────────────────────────────────────────
+     #1E1E2E background  → oklch(0.175 0.028 270)
+     #2A2A3C secondary   → oklch(0.215 0.030 270)
+     #2F3045 card        → oklch(0.235 0.032 268)
+     #FF7A45 accent      → oklch(0.705 0.185 42)
+     #FF914D highlight   → oklch(0.730 0.175 45)
+     #FFFFFF text        → oklch(1 0 0)
+     #B8B8C5 muted       → oklch(0.745 0.012 270)
+     #3A3A4F border      → oklch(0.295 0.030 268)
+  ──────────────────────────────────────────────────────────────────────── */
   :root {
     --radius: 0.75rem;
 
-    /* ── Brand Palette ── */
-    /* Deep Emerald Green #0F5132 → oklch(0.28 0.085 151) */
-    --pos-green: 0.28 0.085 151;
-    /* Warm Orange #FF7A00 → oklch(0.70 0.19 48) */
-    --pos-orange: 0.70 0.19 48;
-    /* Soft Cream #F8F5F0 → oklch(0.975 0.007 85) */
-    --pos-cream: 0.975 0.007 85;
-    /* Soft Teal #1F7A8C → oklch(0.52 0.09 210) */
-    --pos-teal: 0.52 0.09 210;
-    /* Blue for Employees #1E40AF → oklch(0.42 0.16 260) */
-    --pos-blue: 0.42 0.16 260;
-    /* Grey for Settings → oklch(0.52 0.01 250) */
-    --pos-grey: 0.52 0.01 250;
+    /* ── Dark POS Palette (default) ── */
+    --background: 0.175 0.028 270;
+    --foreground: 1 0 0;
 
-    /* ── Semantic tokens (light / cream theme) ── */
-    /* Background: Light Cream #F8F5F0 */
+    --card: 0.235 0.032 268;
+    --card-foreground: 1 0 0;
+
+    --popover: 0.215 0.030 270;
+    --popover-foreground: 1 0 0;
+
+    /* Primary: Orange accent #FF7A45 */
+    --primary: 0.705 0.185 42;
+    --primary-foreground: 0.10 0.01 0;
+
+    /* Secondary: slightly lighter dark bg */
+    --secondary: 0.215 0.030 270;
+    --secondary-foreground: 1 0 0;
+
+    --muted: 0.215 0.030 270;
+    --muted-foreground: 0.745 0.012 270;
+
+    /* Accent: highlight orange */
+    --accent: 0.730 0.175 45;
+    --accent-foreground: 0.10 0.01 0;
+
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+
+    --border: 0.295 0.030 268;
+    --input: 0.255 0.028 268;
+    --ring: 0.705 0.185 42;
+
+    /* Charts: orange, teal, gold, blue, green */
+    --chart-1: 0.705 0.185 42;
+    --chart-2: 0.52 0.09 210;
+    --chart-3: 0.65 0.12 70;
+    --chart-4: 0.42 0.16 260;
+    --chart-5: 0.55 0.14 151;
+
+    /* Sidebar: slightly darker than background */
+    --sidebar: 0.145 0.025 270;
+    --sidebar-foreground: 1 0 0;
+    --sidebar-primary: 0.705 0.185 42;
+    --sidebar-primary-foreground: 0.10 0.01 0;
+    --sidebar-accent: 0.215 0.030 270;
+    --sidebar-accent-foreground: 1 0 0;
+    --sidebar-border: 0.295 0.030 268;
+    --sidebar-ring: 0.705 0.185 42;
+  }
+
+  /* ── Light Theme Override ── */
+  .light {
     --background: 0.975 0.007 85;
     --foreground: 0.15 0.05 151;
 
@@ -31,45 +77,43 @@
     --popover: 1 0 0;
     --popover-foreground: 0.15 0.05 151;
 
-    /* Primary: Deep Emerald Green #0F5132 */
-    --primary: 0.28 0.085 151;
-    --primary-foreground: 0.97 0 0;
+    --primary: 0.705 0.185 42;
+    --primary-foreground: 0.10 0.01 0;
 
-    /* Secondary: slightly warmer cream for hover states */
     --secondary: 0.94 0.008 85;
     --secondary-foreground: 0.22 0.06 151;
 
     --muted: 0.94 0.007 85;
     --muted-foreground: 0.50 0.03 151;
 
-    /* Accent: Warm Orange #FF7A00 */
-    --accent: 0.70 0.19 48;
-    --accent-foreground: 1 0 0;
+    --accent: 0.730 0.175 45;
+    --accent-foreground: 0.10 0.01 0;
 
     --destructive: 0.577 0.245 27.325;
     --destructive-foreground: 0.985 0 0;
 
     --border: 0.88 0.01 90;
     --input: 0.90 0.01 90;
-    --ring: 0.35 0.09 151;
+    --ring: 0.705 0.185 42;
 
-    /* Charts: emerald, orange, teal, gold, blue */
-    --chart-1: 0.28 0.085 151;
-    --chart-2: 0.70 0.19 48;
-    --chart-3: 0.52 0.09 210;
-    --chart-4: 0.65 0.12 70;
-    --chart-5: 0.42 0.16 260;
+    --chart-1: 0.705 0.185 42;
+    --chart-2: 0.52 0.09 210;
+    --chart-3: 0.65 0.12 70;
+    --chart-4: 0.42 0.16 260;
+    --chart-5: 0.28 0.085 151;
 
-    --sidebar: 0.28 0.085 151;
+    --sidebar: 0.18 0.05 151;
     --sidebar-foreground: 0.97 0 0;
-    --sidebar-primary: 0.70 0.19 48;
-    --sidebar-primary-foreground: 1 0 0;
+    --sidebar-primary: 0.705 0.185 42;
+    --sidebar-primary-foreground: 0.10 0.01 0;
     --sidebar-accent: 0.22 0.07 151;
     --sidebar-accent-foreground: 0.97 0 0;
     --sidebar-border: 0.22 0.07 151;
-    --sidebar-ring: 0.70 0.19 48;
+    --sidebar-ring: 0.705 0.185 42;
   }
+}
 
+@layer base {
   * {
     @apply border-border;
     -webkit-tap-highlight-color: transparent;
@@ -85,20 +129,35 @@
   }
 }
 
-/* ── Print styles ──────────────────────────────────────────── */
+/* ── Thermal Receipt Print Styles ────────────────────────── */
 @media print {
-  body * {
-    visibility: hidden;
-  }
-  #bill-print-area, #bill-print-area * {
-    visibility: visible;
+  body > * { display: none !important; }
+  body #root { display: none !important; }
+  #bill-print-area,
+  #bill-print-area * {
+    display: block !important;
+    visibility: visible !important;
   }
   #bill-print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 80mm;
-    font-size: 12px;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 58mm !important;
+    max-width: 58mm !important;
+    margin: 0 !important;
+    padding: 3mm !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 9pt !important;
+    line-height: 1.3 !important;
+    color: #000 !important;
+    background: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  @page {
+    size: 58mm auto;
+    margin: 0;
   }
 }
 
@@ -108,6 +167,7 @@
     min-height: 48px;
     min-width: 48px;
   }
+
   .pin-dot {
     width: 14px;
     height: 14px;
@@ -117,13 +177,16 @@
   }
   .pin-dot.filled {
     background: var(--pin-color, oklch(var(--primary)));
+    box-shadow: 0 0 8px 2px oklch(var(--primary) / 0.5);
   }
+
   .numpad-btn {
     @apply flex items-center justify-center rounded-xl text-xl font-semibold;
     min-height: 64px;
     background: oklch(var(--card));
     border: 1.5px solid oklch(var(--border));
-    transition: background 0.12s, transform 0.08s;
+    color: oklch(var(--foreground));
+    transition: background 0.12s, transform 0.08s, box-shadow 0.12s;
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
@@ -131,12 +194,64 @@
   .numpad-btn:active {
     transform: scale(0.93);
     background: oklch(var(--secondary));
+    box-shadow: 0 0 0 2px oklch(var(--primary) / 0.4);
   }
+  .numpad-btn:hover {
+    border-color: oklch(var(--primary) / 0.5);
+    box-shadow: 0 0 12px 0 oklch(var(--primary) / 0.15);
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
   .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Dark POS card — default card style */
+  .pos-card {
+    @apply bg-card text-card-foreground rounded-2xl border border-border transition-all duration-200;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.35), 0 1px 4px 0 rgba(0,0,0,0.25);
+  }
+
+  /* Dark POS hover card with orange glow */
+  .pos-card-hover {
+    @apply bg-card text-card-foreground rounded-2xl border border-border transition-all duration-200;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.35), 0 1px 4px 0 rgba(0,0,0,0.25);
+  }
+  .pos-card-hover:hover {
+    border-color: oklch(var(--primary) / 0.4);
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.4), 0 0 20px 0 oklch(var(--primary) / 0.12);
+    transform: translateY(-2px) scale(1.02);
+  }
+
+  /* Glowing orange primary button */
+  .glow-btn {
+    @apply transition-all duration-200;
+    box-shadow: 0 4px 20px 0 oklch(var(--primary) / 0.35);
+  }
+  .glow-btn:hover {
+    box-shadow: 0 6px 28px 0 oklch(var(--primary) / 0.55), 0 0 0 2px oklch(var(--primary) / 0.20);
+    transform: translateY(-1px);
+  }
+  .glow-btn:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 10px 0 oklch(var(--primary) / 0.3);
+  }
+
+  /* Sidebar active item with orange left accent */
+  .sidebar-item-active {
+    background: oklch(var(--primary) / 0.15);
+    border-left: 3px solid oklch(var(--primary));
+    box-shadow: inset 0 0 20px 0 oklch(var(--primary) / 0.08);
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
 }
