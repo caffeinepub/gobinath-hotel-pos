@@ -1128,10 +1128,7 @@ function AppShell({
             <p className="font-display font-bold text-sm text-sidebar-foreground leading-tight truncate">
               Gobinath Hotel
             </p>
-            <p
-              className="text-[11px] leading-tight truncate"
-              style={{ color: "oklch(0.91 0.01 220 / 0.5)" }}
-            >
+            <p className="text-[11px] leading-tight truncate text-sidebar-foreground/50">
               {role === "owner" ? branch.short : "Staff Mode"}
             </p>
           </div>
@@ -1151,29 +1148,25 @@ function AppShell({
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group ${
                   isActive
                     ? "sidebar-item-active font-semibold"
-                    : "hover:bg-[#1E293B]"
+                    : "hover:bg-sidebar-accent"
                 }`}
               >
                 <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                    isActive
-                      ? "bg-orange-500/20"
-                      : "bg-slate-800/60 group-hover:bg-slate-700/70"
-                  }`}
+                  className={`sidebar-icon-wrap${isActive ? " active" : ""}`}
                 >
                   <Icon
                     className={`h-4 w-4 transition-colors duration-200 ${
                       isActive
-                        ? "text-[#F97316]"
-                        : "text-[#94A3B8] group-hover:text-[#FB923C]"
+                        ? "text-sidebar-primary"
+                        : "text-sidebar-foreground/40 group-hover:text-sidebar-primary"
                     }`}
                   />
                 </div>
                 <span
                   className={`text-sm transition-colors duration-200 ${
                     isActive
-                      ? "text-[#E2E8F0]"
-                      : "text-[#94A3B8] group-hover:text-[#E2E8F0]"
+                      ? "text-foreground font-semibold"
+                      : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
                   }`}
                 >
                   {item.label}
@@ -1190,12 +1183,12 @@ function AppShell({
               type="button"
               data-ocid="sidebar.switch_branch_button"
               onClick={onSwitchBranch}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 hover:bg-[#1E293B] group"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 hover:bg-sidebar-accent group"
             >
-              <div className="w-8 h-8 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-orange-500/25">
-                <MapPin className="h-4 w-4 text-[#F97316] group-hover:text-[#FB923C] transition-colors" />
+              <div className="sidebar-icon-wrap">
+                <MapPin className="h-4 w-4 text-sidebar-primary transition-colors" />
               </div>
-              <span className="text-sm text-[#94A3B8] group-hover:text-[#E2E8F0] transition-colors">
+              <span className="text-sm text-sidebar-foreground/60 group-hover:text-sidebar-foreground transition-colors">
                 Switch Branch
               </span>
             </button>
@@ -1204,16 +1197,16 @@ function AppShell({
             type="button"
             data-ocid="sidebar.theme_toggle"
             onClick={onToggleDark}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 hover:bg-[#1E293B] group"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 hover:bg-sidebar-accent group"
           >
-            <div className="w-8 h-8 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-orange-500/25">
+            <div className="sidebar-icon-wrap">
               {isDark ? (
-                <Sun className="h-4 w-4 text-[#F97316] group-hover:text-[#FB923C] transition-colors" />
+                <Sun className="h-4 w-4 text-sidebar-primary transition-colors" />
               ) : (
-                <Moon className="h-4 w-4 text-[#F97316] group-hover:text-[#FB923C] transition-colors" />
+                <Moon className="h-4 w-4 text-sidebar-primary transition-colors" />
               )}
             </div>
-            <span className="text-sm text-[#94A3B8] group-hover:text-[#E2E8F0] transition-colors">
+            <span className="text-sm text-sidebar-foreground/60 group-hover:text-sidebar-foreground transition-colors">
               {isDark ? "Light Mode" : "Dark Mode"}
             </span>
           </button>
@@ -1223,10 +1216,13 @@ function AppShell({
             onClick={onLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 hover:bg-red-500/10 group"
           >
-            <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-red-500/25">
+            <div
+              className="sidebar-icon-wrap"
+              style={{ background: "rgba(239,68,68,0.12)" }}
+            >
               <LogOut className="h-4 w-4 text-red-400 group-hover:text-red-300 transition-colors" />
             </div>
-            <span className="text-sm text-[#94A3B8] group-hover:text-red-300 transition-colors">
+            <span className="text-sm text-sidebar-foreground/60 group-hover:text-red-400 transition-colors">
               Logout
             </span>
           </button>
@@ -2111,7 +2107,7 @@ function BillingScreen({
                   key={item.id}
                   data-ocid={`billing.menu_item.${idx + 1}`}
                   onClick={() => onAddToCart(item)}
-                  className={`relative flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all active:scale-95 ${
+                  className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all active:scale-95 ${
                     inCart
                       ? "border-primary bg-primary/5"
                       : "border-border bg-card hover:border-primary/50"
@@ -2123,7 +2119,7 @@ function BillingScreen({
                     </span>
                   )}
                   {item.imageUrl ? (
-                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                    <div className="w-32 h-32 rounded-lg overflow-hidden flex-shrink-0 mx-auto">
                       <img
                         src={item.imageUrl}
                         alt={item.name}
@@ -2131,14 +2127,20 @@ function BillingScreen({
                       />
                     </div>
                   ) : (
-                    <div className="w-12 h-12 rounded-lg bg-secondary/50 flex items-center justify-center flex-shrink-0">
-                      <UtensilsCrossed className="h-6 w-6 text-muted-foreground opacity-40" />
+                    <div className="w-32 h-32 rounded-lg bg-secondary/50 flex items-center justify-center flex-shrink-0 mx-auto">
+                      <UtensilsCrossed className="h-10 w-10 text-muted-foreground opacity-40" />
                     </div>
                   )}
-                  <span className="text-sm font-medium text-center text-foreground leading-tight">
+                  <span
+                    className="text-sm font-bold text-center leading-tight"
+                    style={{ color: "#000000" }}
+                  >
                     {item.name}
                   </span>
-                  <span className="text-primary font-bold text-sm">
+                  <span
+                    className="text-sm font-extrabold text-center"
+                    style={{ color: "#000000" }}
+                  >
                     {formatINR(item.price)}
                   </span>
                 </button>
@@ -2323,23 +2325,34 @@ function PaymentScreen({
         className="max-w-md mx-auto p-6 flex flex-col items-center justify-center min-h-[calc(100vh-160px)] gap-6"
         data-ocid="payment.success_state"
       >
-        {/* Success icon */}
+        {/* Success icon — green circle with green tick */}
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="w-24 h-24 rounded-full flex items-center justify-center bg-primary/15"
+          className="w-28 h-28 rounded-full flex items-center justify-center"
+          style={{
+            background:
+              "radial-gradient(circle, #dcfce7 0%, #bbf7d0 60%, #86efac 100%)",
+            boxShadow: "0 0 0 6px #dcfce7, 0 8px 32px 0 rgba(22,163,74,0.25)",
+          }}
         >
-          <CheckCircle2 className="h-14 w-14 text-primary" />
+          <Check
+            className="h-14 w-14"
+            style={{ color: "#16A34A", strokeWidth: 3 }}
+          />
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="text-center space-y-1"
+          className="text-center space-y-2"
         >
-          <h2 className="text-2xl font-bold font-display text-primary">
+          <h2
+            className="text-2xl font-bold font-display"
+            style={{ color: "#16A34A" }}
+          >
             Payment Successful
           </h2>
           <p className="text-muted-foreground text-sm font-body">
@@ -2347,9 +2360,14 @@ function PaymentScreen({
               ? "Cash payment received"
               : "QR payment confirmed"}
           </p>
-          <p className="font-bold text-xl mt-1 text-primary">
-            {formatINR(total)}
-          </p>
+          <div
+            className="inline-block px-5 py-2 rounded-xl mt-1"
+            style={{ background: "#dcfce7", border: "1px solid #86efac" }}
+          >
+            <p className="font-bold text-xl" style={{ color: "#16A34A" }}>
+              {formatINR(total)}
+            </p>
+          </div>
         </motion.div>
 
         <motion.div
@@ -2513,10 +2531,16 @@ function PaymentScreen({
             >
               {change >= 0 ? (
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">
+                  <p
+                    className="text-xs font-semibold uppercase tracking-wide"
+                    style={{ color: "#16A34A" }}
+                  >
                     Balance to Return
                   </p>
-                  <p className="text-2xl font-bold text-primary">
+                  <p
+                    className="text-2xl font-bold"
+                    style={{ color: "#16A34A" }}
+                  >
                     {formatINR(change)}
                   </p>
                 </div>
@@ -2582,9 +2606,119 @@ function PaymentScreen({
                 <p className="text-primary font-semibold font-body">
                   UPI ID: {upiId}
                 </p>
-                <p className="text-muted-foreground text-xs mt-0.5 font-body">
-                  Works with GPay, PhonePe, Paytm and all UPI apps
-                </p>
+              </div>
+              {/* UPI app icons row */}
+              <div className="flex items-center justify-center gap-3">
+                {/* Google Pay */}
+                <div title="Google Pay" className="w-6 h-6 flex-shrink-0">
+                  <svg
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    role="img"
+                    aria-label="Google Pay"
+                  >
+                    <title>Google Pay</title>
+                    <path
+                      d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0z"
+                      fill="#fff"
+                    />
+                    <path
+                      d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0z"
+                      fill="#4285F4"
+                      fillOpacity=".1"
+                    />
+                    <text
+                      x="12"
+                      y="16"
+                      textAnchor="middle"
+                      fontSize="9"
+                      fontWeight="bold"
+                      fontFamily="Arial,sans-serif"
+                      fill="#4285F4"
+                    >
+                      G
+                    </text>
+                    <text
+                      x="12"
+                      y="16"
+                      textAnchor="middle"
+                      fontSize="9"
+                      fontWeight="bold"
+                      fontFamily="Arial,sans-serif"
+                      fill="url(#gpay-grad)"
+                    >
+                      G
+                    </text>
+                    <defs>
+                      <linearGradient
+                        id="gpay-grad"
+                        x1="0"
+                        y1="0"
+                        x2="1"
+                        y2="0"
+                      >
+                        <stop offset="0%" stopColor="#4285F4" />
+                        <stop offset="33%" stopColor="#EA4335" />
+                        <stop offset="66%" stopColor="#FBBC04" />
+                        <stop offset="100%" stopColor="#34A853" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+                {/* PhonePe */}
+                <div
+                  title="PhonePe"
+                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: "#5f259f" }}
+                >
+                  <span
+                    style={{
+                      color: "#fff",
+                      fontSize: "9px",
+                      fontWeight: "bold",
+                      fontFamily: "Arial,sans-serif",
+                    }}
+                  >
+                    Pe
+                  </span>
+                </div>
+                {/* Paytm */}
+                <div
+                  title="Paytm"
+                  className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+                  style={{ background: "#00BAF2" }}
+                >
+                  <span
+                    style={{
+                      color: "#fff",
+                      fontSize: "7px",
+                      fontWeight: "bold",
+                      fontFamily: "Arial,sans-serif",
+                      letterSpacing: "-0.5px",
+                    }}
+                  >
+                    PTM
+                  </span>
+                </div>
+                {/* UPI */}
+                <div
+                  title="UPI"
+                  className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+                  style={{ background: "#097939" }}
+                >
+                  <span
+                    style={{
+                      color: "#fff",
+                      fontSize: "7px",
+                      fontWeight: "bold",
+                      fontFamily: "Arial,sans-serif",
+                    }}
+                  >
+                    UPI
+                  </span>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground font-body">
                 Ask customer to scan and confirm payment, then tap Complete
@@ -2663,7 +2797,44 @@ function BillPreviewScreen({
   });
 
   function handlePrint() {
-    window.print();
+    const printArea = document.getElementById("bill-print-area");
+    if (!printArea) {
+      window.print();
+      return;
+    }
+    const printWindow = window.open("", "_blank", "width=300,height=600");
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Bill - ${order.billNumber}</title>
+  <style>
+    @page { size: 58mm auto; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 58mm;
+      max-width: 58mm;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 9pt;
+      line-height: 1.35;
+      color: #000;
+      background: #fff;
+      padding: 3mm;
+    }
+  </style>
+</head>
+<body>${printArea.innerHTML}</body>
+</html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 300);
   }
 
   // Separator lines for thermal receipt
@@ -2849,13 +3020,6 @@ function BillPreviewScreen({
         {/* Major separator */}
         <div className="font-mono text-[10px] overflow-hidden whitespace-nowrap text-black">
           {SEP_MAJOR}
-        </div>
-
-        {/* Brand footer */}
-        <div className="text-center mt-1">
-          <p className="font-mono text-[10px] text-black opacity-70">
-            Powered By NextYU Solution
-          </p>
         </div>
       </div>
 
