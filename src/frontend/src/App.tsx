@@ -37,8 +37,10 @@ import {
   ChevronRight,
   Clock,
   Edit3,
+  ImageIcon,
   IndianRupee,
   LogOut,
+  MapPin,
   Minus,
   Package,
   Plus,
@@ -97,7 +99,7 @@ interface MenuItem {
   price: number;
   category: Category;
   available: boolean;
-  emoji: string;
+  imageUrl?: string;
 }
 
 interface OrderItem {
@@ -167,7 +169,7 @@ const SEED_MENU_BRANCH1: Omit<MenuItem, "id">[] = [
     price: 25,
     category: "Breakfast",
     available: true,
-    emoji: "🍚",
+    imageUrl: "",
   },
   {
     branchId: 1,
@@ -175,7 +177,7 @@ const SEED_MENU_BRANCH1: Omit<MenuItem, "id">[] = [
     price: 35,
     category: "Breakfast",
     available: true,
-    emoji: "🫓",
+    imageUrl: "",
   },
   {
     branchId: 1,
@@ -183,7 +185,7 @@ const SEED_MENU_BRANCH1: Omit<MenuItem, "id">[] = [
     price: 30,
     category: "Breakfast",
     available: true,
-    emoji: "🍲",
+    imageUrl: "",
   },
   {
     branchId: 1,
@@ -191,7 +193,7 @@ const SEED_MENU_BRANCH1: Omit<MenuItem, "id">[] = [
     price: 80,
     category: "Lunch",
     available: true,
-    emoji: "🍱",
+    imageUrl: "",
   },
   {
     branchId: 1,
@@ -199,7 +201,7 @@ const SEED_MENU_BRANCH1: Omit<MenuItem, "id">[] = [
     price: 120,
     category: "Lunch",
     available: true,
-    emoji: "🍛",
+    imageUrl: "",
   },
   {
     branchId: 1,
@@ -207,7 +209,7 @@ const SEED_MENU_BRANCH1: Omit<MenuItem, "id">[] = [
     price: 90,
     category: "Lunch",
     available: true,
-    emoji: "🥘",
+    imageUrl: "",
   },
   {
     branchId: 1,
@@ -215,7 +217,7 @@ const SEED_MENU_BRANCH1: Omit<MenuItem, "id">[] = [
     price: 150,
     category: "Dinner",
     available: true,
-    emoji: "🍗",
+    imageUrl: "",
   },
   {
     branchId: 1,
@@ -223,7 +225,7 @@ const SEED_MENU_BRANCH1: Omit<MenuItem, "id">[] = [
     price: 40,
     category: "Dinner",
     available: true,
-    emoji: "🫓",
+    imageUrl: "",
   },
   {
     branchId: 1,
@@ -231,7 +233,7 @@ const SEED_MENU_BRANCH1: Omit<MenuItem, "id">[] = [
     price: 15,
     category: "Beverages",
     available: true,
-    emoji: "☕",
+    imageUrl: "",
   },
   {
     branchId: 1,
@@ -239,7 +241,7 @@ const SEED_MENU_BRANCH1: Omit<MenuItem, "id">[] = [
     price: 20,
     category: "Beverages",
     available: true,
-    emoji: "☕",
+    imageUrl: "",
   },
   {
     branchId: 1,
@@ -247,7 +249,7 @@ const SEED_MENU_BRANCH1: Omit<MenuItem, "id">[] = [
     price: 20,
     category: "Snacks",
     available: true,
-    emoji: "🟤",
+    imageUrl: "",
   },
   {
     branchId: 1,
@@ -255,7 +257,7 @@ const SEED_MENU_BRANCH1: Omit<MenuItem, "id">[] = [
     price: 15,
     category: "Snacks",
     available: true,
-    emoji: "🔺",
+    imageUrl: "",
   },
 ];
 
@@ -266,7 +268,7 @@ const SEED_MENU_BRANCH2: Omit<MenuItem, "id">[] = [
     price: 30,
     category: "Breakfast",
     available: true,
-    emoji: "🍚",
+    imageUrl: "",
   },
   {
     branchId: 2,
@@ -274,7 +276,7 @@ const SEED_MENU_BRANCH2: Omit<MenuItem, "id">[] = [
     price: 40,
     category: "Breakfast",
     available: true,
-    emoji: "🫓",
+    imageUrl: "",
   },
   {
     branchId: 2,
@@ -282,7 +284,7 @@ const SEED_MENU_BRANCH2: Omit<MenuItem, "id">[] = [
     price: 35,
     category: "Breakfast",
     available: true,
-    emoji: "🍲",
+    imageUrl: "",
   },
   {
     branchId: 2,
@@ -290,7 +292,7 @@ const SEED_MENU_BRANCH2: Omit<MenuItem, "id">[] = [
     price: 90,
     category: "Lunch",
     available: true,
-    emoji: "🍱",
+    imageUrl: "",
   },
   {
     branchId: 2,
@@ -298,7 +300,7 @@ const SEED_MENU_BRANCH2: Omit<MenuItem, "id">[] = [
     price: 130,
     category: "Lunch",
     available: true,
-    emoji: "🍛",
+    imageUrl: "",
   },
   {
     branchId: 2,
@@ -306,7 +308,7 @@ const SEED_MENU_BRANCH2: Omit<MenuItem, "id">[] = [
     price: 100,
     category: "Lunch",
     available: true,
-    emoji: "🥘",
+    imageUrl: "",
   },
   {
     branchId: 2,
@@ -314,7 +316,7 @@ const SEED_MENU_BRANCH2: Omit<MenuItem, "id">[] = [
     price: 160,
     category: "Dinner",
     available: true,
-    emoji: "🍗",
+    imageUrl: "",
   },
   {
     branchId: 2,
@@ -322,7 +324,7 @@ const SEED_MENU_BRANCH2: Omit<MenuItem, "id">[] = [
     price: 45,
     category: "Dinner",
     available: true,
-    emoji: "🫓",
+    imageUrl: "",
   },
   {
     branchId: 2,
@@ -330,7 +332,7 @@ const SEED_MENU_BRANCH2: Omit<MenuItem, "id">[] = [
     price: 20,
     category: "Beverages",
     available: true,
-    emoji: "☕",
+    imageUrl: "",
   },
   {
     branchId: 2,
@@ -338,7 +340,7 @@ const SEED_MENU_BRANCH2: Omit<MenuItem, "id">[] = [
     price: 25,
     category: "Beverages",
     available: true,
-    emoji: "☕",
+    imageUrl: "",
   },
   {
     branchId: 2,
@@ -346,7 +348,7 @@ const SEED_MENU_BRANCH2: Omit<MenuItem, "id">[] = [
     price: 25,
     category: "Snacks",
     available: true,
-    emoji: "🟤",
+    imageUrl: "",
   },
   {
     branchId: 2,
@@ -354,7 +356,7 @@ const SEED_MENU_BRANCH2: Omit<MenuItem, "id">[] = [
     price: 20,
     category: "Snacks",
     available: true,
-    emoji: "🔺",
+    imageUrl: "",
   },
 ];
 
@@ -545,6 +547,11 @@ export default function App() {
 
   function handlePinClear() {
     setPin((p) => p.slice(0, -1));
+    setPinError("");
+  }
+
+  function handlePinClearAll() {
+    setPin("");
     setPinError("");
   }
 
@@ -747,6 +754,7 @@ export default function App() {
             onSelectType={handleLoginTypeSelect}
             onPinDigit={handlePinDigit}
             onPinClear={handlePinClear}
+            onPinClearAll={handlePinClearAll}
             onLogin={handleLogin}
             onBack={() => setLoginType(null)}
           />
@@ -789,6 +797,7 @@ export default function App() {
             onSetCustomerName={setCustomerName}
             onSetCustomerMobile={setCustomerMobile}
             onProceedToPayment={() => setScreen("payment")}
+            onBack={() => setScreen("dashboard")}
           />
         )}
 
@@ -821,11 +830,15 @@ export default function App() {
             branchId={activeBranch}
             onUpdate={setMenuItems}
             allItems={menuItems}
+            onBack={() => setScreen("dashboard")}
           />
         )}
 
         {screen === "reports" && role === "owner" && (
-          <ReportsScreen orders={orders} />
+          <ReportsScreen
+            orders={orders}
+            onBack={() => setScreen("dashboard")}
+          />
         )}
 
         {screen === "employees" && role === "owner" && (
@@ -834,6 +847,7 @@ export default function App() {
             branchId={activeBranch}
             onUpdate={setEmployees}
             allEmployees={employees}
+            onBack={() => setScreen("dashboard")}
           />
         )}
 
@@ -842,6 +856,7 @@ export default function App() {
             gstSettings={gstSettings}
             branchId={activeBranch}
             onUpdate={setGstSettings}
+            onBack={() => setScreen("dashboard")}
           />
         )}
       </main>
@@ -860,12 +875,20 @@ export default function App() {
 
 // ── TopBar ────────────────────────────────────────────────────────────────────
 
+function useHeaderClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
 function TopBar({
   role,
   branch,
   onSwitchBranch,
   onLogout,
-  screen,
 }: {
   role: Role;
   branch: { name: string; short: string };
@@ -873,36 +896,94 @@ function TopBar({
   onLogout: () => void;
   screen: Screen;
 }) {
+  const now = useHeaderClock();
+
+  const dateStr = now.toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+  const timeStr = now.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
   return (
-    <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-md">
-      <div className="flex items-center justify-between px-4 py-3 max-w-4xl mx-auto">
-        <div className="flex flex-col min-w-0">
-          <span className="font-display font-bold text-base leading-tight truncate">
-            Gobinath Hotel POS
-          </span>
-          {role === "owner" && (
-            <span className="text-xs opacity-80 truncate">{branch.short}</span>
-          )}
-          {role === "staff" && (
-            <span className="text-xs opacity-80">Staff Mode</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {role === "owner" && screen !== "branch-select" && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-primary-foreground hover:bg-white/20 text-xs h-8 px-2"
-              onClick={onSwitchBranch}
+    <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-lg">
+      <div className="flex items-center justify-between px-4 py-2.5 max-w-4xl mx-auto gap-3">
+        {/* Left: Logo + Title + Branch */}
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Logo — circular, white border, shadow */}
+          <div
+            className="flex-shrink-0"
+            style={{
+              width: "38px",
+              height: "38px",
+              borderRadius: "50%",
+              overflow: "hidden",
+              border: "2px solid rgba(255,255,255,0.90)",
+              boxShadow:
+                "0 0 0 1px rgba(255,255,255,0.20), 0 4px 12px rgba(0,0,0,0.30)",
+            }}
+          >
+            <img
+              src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
+              alt="Gobinath Hotel Logo"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          {/* Title + Location */}
+          <div className="flex flex-col min-w-0">
+            <span
+              className="font-bold text-sm sm:text-base leading-tight truncate"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
             >
-              <Building2 className="h-3.5 w-3.5 mr-1" />
-              Switch
-            </Button>
+              Gobinath Hotel POS
+            </span>
+            <span className="text-[11px] opacity-80 truncate font-body leading-tight">
+              {role === "owner" ? branch.short : "Staff Mode"}
+            </span>
+          </div>
+        </div>
+
+        {/* Right: Live Date & Time + Change Branch (owner only) + Logout */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Date & Time block */}
+          <div className="text-right leading-tight" data-ocid="topbar.datetime">
+            <p className="text-[11px] sm:text-xs font-semibold opacity-95 font-body">
+              {dateStr}
+            </p>
+            <p className="text-[11px] sm:text-xs opacity-75 font-body">
+              {timeStr}
+            </p>
+          </div>
+
+          {/* Change Branch — owner only */}
+          {role === "owner" && (
+            <>
+              <span className="text-primary-foreground opacity-50 text-sm select-none">
+                |
+              </span>
+              <button
+                type="button"
+                data-ocid="topbar.change_branch_button"
+                onClick={onSwitchBranch}
+                className="flex items-center gap-1.5 h-9 px-2 rounded-lg text-xs font-medium text-primary-foreground hover:bg-white/15 transition-colors"
+              >
+                <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="hidden sm:inline">Change Branch</span>
+                <span className="sm:hidden">Branch</span>
+              </button>
+            </>
           )}
+
+          {/* Logout */}
           <Button
             size="sm"
             variant="ghost"
-            className="text-primary-foreground hover:bg-white/20 h-8 px-2"
+            data-ocid="topbar.logout_button"
+            className="text-primary-foreground hover:bg-white/20 h-8 w-8 p-0"
             onClick={onLogout}
           >
             <LogOut className="h-4 w-4" />
@@ -941,7 +1022,7 @@ function BottomNav({
               key={item.id}
               data-ocid={`nav.${item.id}_tab`}
               onClick={() => onNavigate(item.screen)}
-              className={`flex flex-col items-center justify-center py-2 px-3 flex-1 min-h-[60px] transition-colors ${
+              className={`flex flex-col items-center justify-center py-2 px-3 flex-1 min-h-[60px] transition-colors font-body ${
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
@@ -975,8 +1056,9 @@ function LoginScreen({
   onSelectType,
   onPinDigit,
   onPinClear,
+  onPinClearAll,
   onLogin,
-  onBack,
+  onBack: _onBack,
 }: {
   loginType: "owner" | "staff" | null;
   pin: string;
@@ -984,236 +1066,237 @@ function LoginScreen({
   onSelectType: (t: "owner" | "staff") => void;
   onPinDigit: (d: string) => void;
   onPinClear: () => void;
+  onPinClearAll: () => void;
   onLogin: () => void;
   onBack: () => void;
 }) {
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center p-5 sm:p-8"
+      className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
       style={{
         background:
           "linear-gradient(135deg, #0F5132 0%, #0d3b26 40%, #0a2e35 70%, #0b3d3d 100%)",
       }}
     >
-      {/* Logo + Title */}
-      <div className="flex flex-col items-center mb-7 animate-fade-in">
-        <div className="mb-4 rounded-2xl shadow-2xl overflow-hidden border-2 border-white/20 w-28 h-28 sm:w-36 sm:h-36 flex-shrink-0">
-          <img
-            src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
-            alt="Gobinath Hotel Logo"
-            className="w-full h-full object-cover"
-          />
+      {/* Inner scroll container — constrained to viewport height */}
+      <div className="flex flex-col items-center w-full px-5 sm:px-8 max-h-screen overflow-y-auto py-4 sm:py-6 scrollbar-hide">
+        {/* Logo + Title — always visible at top */}
+        <div className="flex flex-col items-center mb-5 animate-fade-in flex-shrink-0">
+          <div className="mb-3 rounded-2xl shadow-2xl overflow-hidden border-2 border-white/20 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0">
+            <img
+              src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
+              alt="Gobinath Hotel Logo"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <h1 className="font-display text-3xl sm:text-4xl font-bold text-white mb-1 tracking-tight text-center drop-shadow-lg">
+            Gobinath Hotel
+          </h1>
+          <p className="text-white/60 text-xs sm:text-sm font-body tracking-[0.2em] uppercase">
+            Restaurant Management System
+          </p>
         </div>
-        <h1 className="font-display text-4xl sm:text-5xl font-bold text-white mb-1 tracking-tight text-center drop-shadow-lg">
-          Gobinath Hotel
-        </h1>
-        <p className="text-white/60 text-xs sm:text-sm font-body tracking-[0.2em] uppercase">
-          Restaurant Management System
-        </p>
-      </div>
 
-      {/* Login Card */}
-      <div
-        className="w-full max-w-sm rounded-3xl shadow-2xl p-6 animate-scale-in"
-        style={{
-          background: "rgba(248, 245, 240, 0.97)",
-          backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.25)",
-        }}
-      >
-        {loginType === null ? (
-          <>
-            <h2 className="text-center font-display text-xl font-bold text-foreground mb-6">
-              Select Login Type
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Owner Login */}
-              <button
-                type="button"
-                data-ocid="login.owner_button"
-                onClick={() => onSelectType("owner")}
-                className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 active:scale-95 transition-all min-h-[130px]"
-                style={{
-                  borderColor: "#0F5132",
-                  background: "rgba(15,81,50,0.06)",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(15,81,50,0.12)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(15,81,50,0.06)";
-                }}
-              >
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center"
-                  style={{ background: "rgba(15,81,50,0.12)" }}
-                >
-                  <Shield className="h-7 w-7" style={{ color: "#0F5132" }} />
-                </div>
-                <span
-                  className="font-semibold text-sm text-center leading-tight"
-                  style={{ color: "#0F5132" }}
-                >
-                  Owner Login
-                </span>
-              </button>
-              {/* Staff Login */}
-              <button
-                type="button"
-                data-ocid="login.staff_button"
-                onClick={() => onSelectType("staff")}
-                className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 active:scale-95 transition-all min-h-[130px]"
-                style={{
-                  borderColor: "#FF7A00",
-                  background: "rgba(255,122,0,0.06)",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(255,122,0,0.12)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(255,122,0,0.06)";
-                }}
-              >
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center"
-                  style={{ background: "rgba(255,122,0,0.12)" }}
-                >
-                  <UserCog className="h-7 w-7" style={{ color: "#FF7A00" }} />
-                </div>
-                <span
-                  className="font-semibold text-sm text-center leading-tight"
-                  style={{ color: "#FF7A00" }}
-                >
-                  Staff Login
-                </span>
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Logo on PIN screen */}
-            <div className="flex flex-col items-center mb-4">
-              <div className="mb-3 rounded-xl shadow-lg overflow-hidden border-2 border-white/20 w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0">
-                <img
-                  src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
-                  alt="Gobinath Hotel Logo"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h1 className="font-display text-xl font-bold text-foreground text-center leading-tight">
-                Gobinath Hotel
-              </h1>
-            </div>
-
-            <div className="relative flex items-center justify-center mb-4">
-              <h2 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
-                {loginType === "owner" ? (
-                  <>
-                    <Shield className="h-5 w-5" style={{ color: "#0F5132" }} />
-                    Owner PIN
-                  </>
-                ) : (
-                  <>
-                    <UserCog className="h-5 w-5" style={{ color: "#FF7A00" }} />
-                    Staff PIN
-                  </>
-                )}
+        {/* Login Card */}
+        <div
+          className="w-full max-w-xs sm:max-w-sm rounded-3xl shadow-2xl p-5 sm:p-6 animate-scale-in flex-shrink-0"
+          style={{
+            background: "rgba(248, 245, 240, 0.97)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255,255,255,0.25)",
+          }}
+        >
+          {loginType === null ? (
+            <>
+              <h2 className="text-center font-display text-xl font-bold text-foreground mb-5">
+                Select Login Type
               </h2>
-              <button
-                type="button"
-                data-ocid="login.close_button"
-                onClick={onBack}
-                className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-secondary transition-colors"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5 text-muted-foreground" />
-              </button>
-            </div>
-
-            {/* PIN dots */}
-            <div
-              className="flex justify-center gap-4 mb-6"
-              data-ocid="login.pin_input"
-            >
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className={`pin-dot ${i < pin.length ? "filled" : ""}`}
-                  style={
-                    loginType === "staff"
-                      ? ({
-                          "--pin-color": "#FF7A00",
-                        } as React.CSSProperties)
-                      : undefined
-                  }
-                />
-              ))}
-            </div>
-
-            {/* Error */}
-            {pinError && (
-              <p
-                className="text-destructive text-sm text-center mb-3 font-medium animate-fade-in"
-                data-ocid="login.error_state"
-              >
-                {pinError}
-              </p>
-            )}
-
-            {/* Numpad */}
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
+              <div className="grid grid-cols-2 gap-4">
+                {/* Owner Login */}
                 <button
                   type="button"
-                  key={d}
-                  className="numpad-btn"
-                  onClick={() => onPinDigit(d)}
+                  data-ocid="login.owner_button"
+                  onClick={() => onSelectType("owner")}
+                  className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 active:scale-95 transition-all min-h-[120px]"
+                  style={{
+                    borderColor: "#0F5132",
+                    background: "rgba(15,81,50,0.06)",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background =
+                      "rgba(15,81,50,0.12)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background =
+                      "rgba(15,81,50,0.06)";
+                  }}
                 >
-                  {d}
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ background: "rgba(15,81,50,0.12)" }}
+                  >
+                    <Shield className="h-7 w-7" style={{ color: "#0F5132" }} />
+                  </div>
+                  <span
+                    className="font-semibold text-sm text-center leading-tight"
+                    style={{ color: "#0F5132" }}
+                  >
+                    Owner Login
+                  </span>
                 </button>
-              ))}
-              <div />
-              <button
-                type="button"
-                className="numpad-btn"
-                onClick={() => onPinDigit("0")}
-              >
-                0
-              </button>
-              <button
-                type="button"
-                className="numpad-btn text-destructive"
-                onClick={onPinClear}
-              >
-                ⌫
-              </button>
-            </div>
+                {/* Staff Login */}
+                <button
+                  type="button"
+                  data-ocid="login.staff_button"
+                  onClick={() => onSelectType("staff")}
+                  className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 active:scale-95 transition-all min-h-[120px]"
+                  style={{
+                    borderColor: "#FF7A00",
+                    background: "rgba(255,122,0,0.06)",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background =
+                      "rgba(255,122,0,0.12)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background =
+                      "rgba(255,122,0,0.06)";
+                  }}
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ background: "rgba(255,122,0,0.12)" }}
+                  >
+                    <UserCog className="h-7 w-7" style={{ color: "#FF7A00" }} />
+                  </div>
+                  <span
+                    className="font-semibold text-sm text-center leading-tight"
+                    style={{ color: "#FF7A00" }}
+                  >
+                    Staff Login
+                  </span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* PIN screen header — no logo, no close button */}
+              <div className="flex items-center justify-center mb-4">
+                <h2 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
+                  {loginType === "owner" ? (
+                    <>
+                      <Shield
+                        className="h-5 w-5"
+                        style={{ color: "#0F5132" }}
+                      />
+                      Owner PIN
+                    </>
+                  ) : (
+                    <>
+                      <UserCog
+                        className="h-5 w-5"
+                        style={{ color: "#FF7A00" }}
+                      />
+                      Staff PIN
+                    </>
+                  )}
+                </h2>
+              </div>
 
-            {/* Login button */}
-            <Button
-              data-ocid="login.submit_button"
-              className="w-full h-12 text-base font-semibold rounded-xl text-white border-0"
-              style={{
-                background: loginType === "owner" ? "#0F5132" : "#FF7A00",
-              }}
-              disabled={pin.length < 4}
-              onClick={onLogin}
-            >
-              <Check className="h-5 w-5 mr-2" />
-              Login
-            </Button>
-          </>
-        )}
+              {/* PIN dots */}
+              <div
+                className="flex justify-center gap-4 mb-5"
+                data-ocid="login.pin_input"
+              >
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className={`pin-dot ${i < pin.length ? "filled" : ""}`}
+                    style={
+                      loginType === "staff"
+                        ? ({
+                            "--pin-color": "#FF7A00",
+                          } as React.CSSProperties)
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
+
+              {/* Error */}
+              {pinError && (
+                <p
+                  className="text-destructive text-sm text-center mb-3 font-medium animate-fade-in"
+                  data-ocid="login.error_state"
+                >
+                  {pinError}
+                </p>
+              )}
+
+              {/* Numpad — Row 4: C, 0, ⌫ */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
+                  <button
+                    type="button"
+                    key={d}
+                    className="numpad-btn"
+                    onClick={() => onPinDigit(d)}
+                  >
+                    {d}
+                  </button>
+                ))}
+                {/* Row 4: C, 0, ⌫ */}
+                <button
+                  type="button"
+                  data-ocid="login.clear_button"
+                  className="numpad-btn font-bold"
+                  style={{ color: "#0F5132" }}
+                  onClick={onPinClearAll}
+                >
+                  C
+                </button>
+                <button
+                  type="button"
+                  className="numpad-btn"
+                  onClick={() => onPinDigit("0")}
+                >
+                  0
+                </button>
+                <button
+                  type="button"
+                  data-ocid="login.backspace_button"
+                  className="numpad-btn text-destructive"
+                  onClick={onPinClear}
+                >
+                  ⌫
+                </button>
+              </div>
+
+              {/* Login button */}
+              <Button
+                data-ocid="login.submit_button"
+                className="w-full h-12 text-base font-semibold rounded-xl text-white border-0"
+                style={{
+                  background: loginType === "owner" ? "#0F5132" : "#FF7A00",
+                }}
+                disabled={pin.length < 4}
+                onClick={onLogin}
+              >
+                <Check className="h-5 w-5 mr-2" />
+                Login
+              </Button>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <p
+          className="text-center text-xs mt-5 flex-shrink-0"
+          style={{ color: "#9ca3af" }}
+        >
+          Powered By NextYU Solution
+        </p>
       </div>
-
-      {/* Footer */}
-      <p className="text-center text-xs mt-6" style={{ color: "#9ca3af" }}>
-        Powered By NextYU Solution
-      </p>
     </div>
   );
 }
@@ -1221,18 +1304,14 @@ function LoginScreen({
 // ── BranchSelectScreen ────────────────────────────────────────────────────────
 
 const BRANCH_ICONS = [Store, Building2];
-const BRANCH_DESCRIPTIONS = [
-  "Main Branch · Sethurapatti",
-  "Second Branch · JJ College",
-];
 
 function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
   const containerVariants = {
     hidden: {},
     visible: {
       transition: {
-        staggerChildren: 0.12,
-        delayChildren: 0.1,
+        staggerChildren: 0.14,
+        delayChildren: 0.15,
       },
     },
   };
@@ -1247,7 +1326,7 @@ function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
   };
 
   const cardVariants = {
-    hidden: { opacity: 0, y: 28, scale: 0.97 },
+    hidden: { opacity: 0, y: 24, scale: 0.97 },
     visible: {
       opacity: 1,
       y: 0,
@@ -1265,42 +1344,60 @@ function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
           "linear-gradient(160deg, oklch(0.22 0.07 151) 0%, oklch(0.18 0.06 162) 50%, oklch(0.15 0.05 155) 100%)",
       }}
     >
-      {/* Logo */}
+      {/* Logo + Header */}
       <motion.div
         variants={headerVariants}
         initial="hidden"
         animate="visible"
-        className="mb-6 flex flex-col items-center"
+        className="mb-8 flex flex-col items-center"
       >
-        <img
-          src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
-          alt="Gobinath Hotel Logo"
-          className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover shadow-lg border-2 border-white/20 mb-4"
-        />
+        {/* Circular logo with glow */}
+        <div
+          className="mb-5 flex-shrink-0"
+          style={{
+            width: "88px",
+            height: "88px",
+            borderRadius: "50%",
+            overflow: "hidden",
+            border: "1.5px solid rgba(255,255,255,0.28)",
+            boxShadow:
+              "0 8px 32px 0 rgba(0,0,0,0.32), 0 0 0 4px rgba(255,255,255,0.08), 0 0 24px 6px rgba(15,81,50,0.45)",
+          }}
+        >
+          <img
+            src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
+            alt="Gobinath Hotel Logo"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+            }}
+          />
+        </div>
         <h1
-          className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-1"
+          className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-1.5 text-center"
           style={{ fontFamily: "'Playfair Display', Fraunces, Georgia, serif" }}
         >
           Select Branch
         </h1>
         <p
-          className="text-sm sm:text-base text-white/60"
+          className="text-sm sm:text-base text-white/55 text-center"
           style={{ fontFamily: "Plus Jakarta Sans, Poppins, sans-serif" }}
         >
           Choose the branch you want to manage
         </p>
       </motion.div>
 
-      {/* Branch cards */}
+      {/* Branch cards — stacked vertical, full-width on mobile, centered on tablet+ */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="w-full max-w-lg grid grid-cols-1 sm:grid-cols-2 gap-4"
+        className="w-full max-w-md flex flex-col gap-3"
       >
         {BRANCHES.map((branch, i) => {
           const Icon = BRANCH_ICONS[i] ?? Building2;
-          const description = BRANCH_DESCRIPTIONS[i] ?? "";
 
           return (
             <motion.button
@@ -1308,15 +1405,14 @@ function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
               key={branch.id}
               data-ocid={`branch_select.item.${i + 1}`}
               variants={cardVariants}
-              whileHover={{ scale: 1.04, y: -3 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.025, y: -2 }}
+              whileTap={{ scale: 0.975 }}
               onClick={() => onSelect(branch.id)}
-              className="group relative flex flex-col items-center text-center gap-4 p-6 sm:p-7 rounded-2xl border border-white/10 cursor-pointer transition-shadow duration-300"
+              className="group relative flex items-center gap-4 px-5 py-4 sm:py-5 rounded-2xl border border-white/10 cursor-pointer transition-shadow duration-300 text-left w-full"
               style={{
                 background: "oklch(0.975 0.006 85 / 0.97)",
                 boxShadow:
                   "0 4px 24px 0 rgba(0,0,0,0.18), 0 1px 4px 0 rgba(0,0,0,0.10)",
-                minHeight: "160px",
               }}
             >
               {/* Hover highlight overlay */}
@@ -1324,53 +1420,39 @@ function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
                 className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                 style={{
                   background:
-                    "linear-gradient(135deg, oklch(0.28 0.08 151 / 0.06) 0%, oklch(0.70 0.19 48 / 0.04) 100%)",
+                    "linear-gradient(135deg, rgba(15,81,50,0.05) 0%, rgba(255,122,0,0.03) 100%)",
                 }}
               />
 
               {/* Icon circle */}
-              <motion.div
-                whileHover={{ scale: 1.12 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
-                className="relative w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+              <div
+                className="relative w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{
-                  background:
-                    "linear-gradient(135deg, oklch(0.28 0.08 151 / 0.12) 0%, oklch(0.35 0.09 151 / 0.08) 100%)",
+                  background: "rgba(15,81,50,0.10)",
                   boxShadow:
-                    "0 2px 12px 0 rgba(15,81,50,0.18), 0 0 0 2px oklch(0.28 0.08 151 / 0.10)",
+                    "0 2px 10px 0 rgba(15,81,50,0.15), 0 0 0 1.5px rgba(15,81,50,0.12)",
                 }}
               >
                 <Icon
-                  className="h-7 w-7 transition-colors duration-300 group-hover:text-accent"
+                  className="h-6 w-6"
                   style={{ color: "oklch(0.28 0.08 151)" }}
                 />
-              </motion.div>
-
-              {/* Text */}
-              <div className="flex flex-col items-center gap-1 min-w-0 w-full">
-                <p
-                  className="font-semibold text-base sm:text-lg leading-tight truncate w-full"
-                  style={{
-                    fontFamily: "'Playfair Display', Fraunces, Georgia, serif",
-                    color: "oklch(0.18 0.05 151)",
-                  }}
-                >
-                  {branch.name}
-                </p>
-                <p
-                  className="text-xs sm:text-sm leading-snug"
-                  style={{
-                    fontFamily: "Plus Jakarta Sans, Poppins, sans-serif",
-                    color: "oklch(0.50 0.03 151)",
-                  }}
-                >
-                  {description}
-                </p>
               </div>
+
+              {/* Branch name — bold and clear */}
+              <p
+                className="flex-1 font-bold text-base sm:text-lg leading-snug truncate"
+                style={{
+                  fontFamily: "'Playfair Display', Fraunces, Georgia, serif",
+                  color: "oklch(0.18 0.05 151)",
+                }}
+              >
+                {branch.name}
+              </p>
 
               {/* Arrow */}
               <ChevronRight
-                className="absolute bottom-4 right-4 h-4 w-4 opacity-30 group-hover:opacity-60 group-hover:translate-x-0.5 transition-all duration-300"
+                className="flex-shrink-0 h-5 w-5 opacity-35 group-hover:opacity-70 group-hover:translate-x-0.5 transition-all duration-300"
                 style={{ color: "oklch(0.28 0.08 151)" }}
               />
             </motion.button>
@@ -1383,7 +1465,7 @@ function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
         variants={headerVariants}
         initial="hidden"
         animate="visible"
-        className="mt-10 text-xs text-white/30"
+        className="mt-10 text-xs text-white/30 text-center"
         style={{ fontFamily: "Plus Jakarta Sans, Poppins, sans-serif" }}
       >
         Powered By NextYU Solution
@@ -1393,6 +1475,59 @@ function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
 }
 
 // ── DashboardScreen ───────────────────────────────────────────────────────────
+
+const MODULE_CONFIG: {
+  label: string;
+  icon: React.ComponentType<{
+    className?: string;
+    style?: React.CSSProperties;
+  }>;
+  screen: Screen;
+  iconColor: string;
+  bgColor: string;
+  description: string;
+}[] = [
+  {
+    label: "Billing",
+    icon: ShoppingCart,
+    screen: "billing",
+    iconColor: "#0F5132",
+    bgColor: "rgba(15,81,50,0.10)",
+    description: "New orders & bills",
+  },
+  {
+    label: "Menu",
+    icon: UtensilsCrossed,
+    screen: "menu",
+    iconColor: "#FF7A00",
+    bgColor: "rgba(255,122,0,0.10)",
+    description: "Manage food items",
+  },
+  {
+    label: "Reports",
+    icon: BarChart2,
+    screen: "reports",
+    iconColor: "#1F7A8C",
+    bgColor: "rgba(31,122,140,0.10)",
+    description: "Sales analytics",
+  },
+  {
+    label: "Employees",
+    icon: Users,
+    screen: "employees",
+    iconColor: "#1E40AF",
+    bgColor: "rgba(30,64,175,0.10)",
+    description: "Staff management",
+  },
+  {
+    label: "Settings",
+    icon: Settings,
+    screen: "settings",
+    iconColor: "#6B7280",
+    bgColor: "rgba(107,114,128,0.10)",
+    description: "App configuration",
+  },
+];
 
 function DashboardScreen({
   branch,
@@ -1420,141 +1555,243 @@ function DashboardScreen({
   const topItem =
     Object.entries(itemCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
 
-  const modules: {
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    screen: Screen;
-    color: string;
-  }[] = [
-    {
-      label: "Billing",
-      icon: ShoppingCart,
-      screen: "billing",
-      color: "bg-primary",
+  const containerVariants = {
+    hidden: {},
+    visible: {
+      transition: { staggerChildren: 0.07, delayChildren: 0.05 },
     },
-    {
-      label: "Menu",
-      icon: UtensilsCrossed,
-      screen: "menu",
-      color: "bg-accent",
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 16 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.35, ease: "easeOut" as const },
     },
-    {
-      label: "Reports",
-      icon: BarChart2,
-      screen: "reports",
-      color: "bg-chart-3",
-    },
-    {
-      label: "Employees",
-      icon: Users,
-      screen: "employees",
-      color: "bg-chart-5",
-    },
-    {
-      label: "Settings",
-      icon: Settings,
-      screen: "settings",
-      color: "bg-muted-foreground",
-    },
-  ];
+  };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-5">
-      <div>
-        <h2 className="font-display text-xl font-bold text-foreground">
-          Dashboard
-        </h2>
-        <p className="text-sm text-muted-foreground">{branch.name}</p>
-      </div>
+    <div
+      data-ocid="dashboard.page"
+      className="max-w-4xl mx-auto p-4 pb-6 space-y-5"
+      style={{ background: "oklch(var(--background))" }}
+    >
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex items-center justify-between"
+      >
+        <div>
+          <h2
+            className="text-3xl sm:text-4xl font-bold tracking-tight"
+            style={{
+              fontFamily: "'Playfair Display', Georgia, serif",
+              color: "#0F5132",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Dashboard
+          </h2>
+          <p className="text-sm text-muted-foreground font-body mt-0.5">
+            {branch.name}
+          </p>
+        </div>
+      </motion.div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl p-4 shadow-card text-center">
-          <IndianRupee className="h-5 w-5 text-primary mx-auto mb-1" />
-          <p className="text-lg font-bold text-primary">
+      {/* Stats Row */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-3 gap-3"
+        data-ocid="dashboard.stats_section"
+      >
+        {/* Today's Sales */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-2xl p-3 sm:p-4 shadow-stat-card text-center border border-border"
+          data-ocid="dashboard.sales_card"
+        >
+          <div
+            className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center"
+            style={{ background: "rgba(15,81,50,0.10)" }}
+          >
+            <IndianRupee className="h-4 w-4" style={{ color: "#0F5132" }} />
+          </div>
+          <p
+            className="text-base sm:text-lg font-bold leading-tight"
+            style={{ color: "#0F5132" }}
+          >
             {formatINR(todaySales)}
           </p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 font-body">
             Today Sales
           </p>
-        </div>
-        <div className="bg-white rounded-2xl p-4 shadow-card text-center">
-          <Package className="h-5 w-5 text-accent mx-auto mb-1" />
-          <p className="text-lg font-bold text-accent">{todayOrders.length}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
+        </motion.div>
+
+        {/* Total Orders */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-2xl p-3 sm:p-4 shadow-stat-card text-center border border-border"
+          data-ocid="dashboard.orders_card"
+        >
+          <div
+            className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center"
+            style={{ background: "rgba(255,122,0,0.10)" }}
+          >
+            <Package className="h-4 w-4" style={{ color: "#FF7A00" }} />
+          </div>
+          <p
+            className="text-base sm:text-lg font-bold leading-tight"
+            style={{ color: "#FF7A00" }}
+          >
+            {todayOrders.length}
+          </p>
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 font-body">
             Total Orders
           </p>
-        </div>
-        <div className="bg-white rounded-2xl p-4 shadow-card text-center">
-          <TrendingUp className="h-5 w-5 text-chart-3 mx-auto mb-1" />
-          <p className="text-sm font-bold text-foreground truncate">
+        </motion.div>
+
+        {/* Top Item */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-2xl p-3 sm:p-4 shadow-stat-card text-center border border-border"
+          data-ocid="dashboard.topitem_card"
+        >
+          <div
+            className="w-9 h-9 rounded-xl mx-auto mb-2 flex items-center justify-center"
+            style={{ background: "rgba(31,122,140,0.10)" }}
+          >
+            <TrendingUp className="h-4 w-4" style={{ color: "#1F7A8C" }} />
+          </div>
+          <p
+            className="text-xs sm:text-sm font-bold leading-tight truncate"
+            style={{ color: "#1F7A8C" }}
+          >
             {topItem}
           </p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Top Item</p>
-        </div>
-      </div>
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 font-body">
+            Top Item
+          </p>
+        </motion.div>
+      </motion.div>
+
+      {/* Module Grid Label */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="text-xs font-semibold uppercase tracking-widest text-muted-foreground font-body"
+      >
+        Modules
+      </motion.p>
 
       {/* Module Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        {modules.map((mod) => {
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+        data-ocid="dashboard.modules_section"
+      >
+        {MODULE_CONFIG.map((mod) => {
           const Icon = mod.icon;
           return (
-            <button
+            <motion.button
               type="button"
               key={mod.screen}
-              data-ocid={`nav.${mod.label.toLowerCase()}_tab`}
+              data-ocid={`dashboard.${mod.label.toLowerCase()}_card`}
+              variants={itemVariants}
+              whileHover={{
+                y: -4,
+                boxShadow:
+                  "0 10px 32px 0 rgba(15,81,50,0.15), 0 2px 8px 0 rgba(15,81,50,0.08)",
+              }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate(mod.screen)}
-              className="flex flex-col items-center justify-center gap-3 bg-white rounded-2xl p-6 shadow-card hover:shadow-card-hover active:scale-97 transition-all min-h-[120px] border border-border"
+              className="flex flex-col items-start gap-3 bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-border cursor-pointer min-h-[120px] sm:min-h-[140px] text-left transition-shadow duration-200"
             >
+              {/* Icon circle */}
               <div
-                className={`w-12 h-12 rounded-xl ${mod.color} flex items-center justify-center`}
+                className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: mod.bgColor }}
               >
-                <Icon className="h-6 w-6 text-white" />
+                <Icon
+                  className="h-5 w-5 sm:h-6 sm:w-6"
+                  style={{ color: mod.iconColor }}
+                />
               </div>
-              <span className="font-semibold text-foreground text-sm">
-                {mod.label}
-              </span>
-            </button>
+              {/* Label + Description */}
+              <div>
+                <p
+                  className="font-semibold text-sm sm:text-base font-body leading-tight"
+                  style={{ color: "#0F5132" }}
+                >
+                  {mod.label}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 font-body leading-snug">
+                  {mod.description}
+                </p>
+              </div>
+            </motion.button>
           );
         })}
-      </div>
+      </motion.div>
 
-      {/* Recent orders */}
+      {/* Recent Orders */}
       {todayOrders.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-card p-4">
-          <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white rounded-2xl shadow-card border border-border p-4"
+          data-ocid="dashboard.recent_orders_section"
+        >
+          <h3
+            className="font-semibold text-sm mb-3 flex items-center gap-2 font-body"
+            style={{ color: "#0F5132" }}
+          >
+            <Clock className="h-4 w-4" style={{ color: "#1F7A8C" }} />
             Recent Orders Today
           </h3>
           <div className="space-y-2">
             {todayOrders
               .slice(-3)
               .reverse()
-              .map((order) => (
+              .map((order, idx) => (
                 <div
                   key={order.id}
+                  data-ocid={`dashboard.recent_orders.item.${idx + 1}`}
                   className="flex items-center justify-between text-sm py-1.5 border-b border-border last:border-0"
                 >
                   <div>
-                    <span className="font-medium">{order.billNumber}</span>
+                    <span className="font-medium font-body">
+                      {order.billNumber}
+                    </span>
                     {order.customerName && (
-                      <span className="text-muted-foreground ml-2">
+                      <span className="text-muted-foreground ml-2 font-body">
                         · {order.customerName}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs font-body">
                       {order.paymentMethod}
                     </Badge>
-                    <span className="font-semibold text-primary">
+                    <span
+                      className="font-semibold font-body"
+                      style={{ color: "#0F5132" }}
+                    >
                       {formatINR(order.total)}
                     </span>
                   </div>
                 </div>
               ))}
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );
@@ -1581,6 +1818,7 @@ function BillingScreen({
   onSetCustomerName,
   onSetCustomerMobile,
   onProceedToPayment,
+  onBack,
 }: {
   menuItems: MenuItem[];
   cart: OrderItem[];
@@ -1600,6 +1838,7 @@ function BillingScreen({
   onSetCustomerName: (v: string) => void;
   onSetCustomerMobile: (v: string) => void;
   onProceedToPayment: () => void;
+  onBack: () => void;
 }) {
   const filtered =
     activeCategory === "All"
@@ -1612,6 +1851,18 @@ function BillingScreen({
     <div className="max-w-4xl mx-auto p-0 md:p-4 md:grid md:grid-cols-[1fr_360px] md:gap-4 min-h-[calc(100vh-120px)]">
       {/* Left: Menu */}
       <div className="flex flex-col">
+        {/* Back button row */}
+        <div className="flex items-center gap-2 px-4 py-2 bg-white border-b border-border">
+          <button
+            type="button"
+            data-ocid="billing.back_button"
+            onClick={onBack}
+            className="flex items-center gap-1.5 h-10 px-3 rounded-xl hover:bg-secondary transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back
+          </button>
+        </div>
+
         {/* Category tabs */}
         <div
           className="flex overflow-x-auto gap-2 px-4 py-3 bg-white border-b border-border no-scrollbar"
@@ -1663,7 +1914,19 @@ function BillingScreen({
                       {inCart.quantity}
                     </span>
                   )}
-                  <span className="text-3xl">{item.emoji}</span>
+                  {item.imageUrl ? (
+                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                      <img
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-secondary/50 flex items-center justify-center flex-shrink-0">
+                      <UtensilsCrossed className="h-6 w-6 text-muted-foreground opacity-40" />
+                    </div>
+                  )}
                   <span className="text-sm font-medium text-center text-foreground leading-tight">
                     {item.name}
                   </span>
@@ -2103,11 +2366,13 @@ function MenuScreen({
   branchId,
   onUpdate,
   allItems,
+  onBack,
 }: {
   menuItems: MenuItem[];
   branchId: number;
   onUpdate: (items: MenuItem[]) => void;
   allItems: MenuItem[];
+  onBack: () => void;
 }) {
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<MenuItem | null>(null);
@@ -2118,9 +2383,10 @@ function MenuScreen({
     name: "",
     price: "",
     category: "Breakfast" as Category,
-    emoji: "🍽️",
+    imageUrl: "",
     available: true,
   });
+  const [imageError, setImageError] = useState("");
 
   const openAdd = useCallback(() => {
     setEditItem(null);
@@ -2128,9 +2394,10 @@ function MenuScreen({
       name: "",
       price: "",
       category: "Breakfast",
-      emoji: "🍽️",
+      imageUrl: "",
       available: true,
     });
+    setImageError("");
     setShowModal(true);
   }, []);
 
@@ -2140,11 +2407,35 @@ function MenuScreen({
       name: item.name,
       price: String(item.price),
       category: item.category,
-      emoji: item.emoji,
+      imageUrl: item.imageUrl ?? "",
       available: item.available,
     });
+    setImageError("");
     setShowModal(true);
   }, []);
+
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setImageError("Only jpg, jpeg, png, webp files are allowed.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setImageError("Image size must be less than 2MB.");
+      e.target.value = "";
+      return;
+    }
+    setImageError("");
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setForm((f) => ({ ...f, imageUrl: ev.target?.result as string }));
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
 
   function handleSave() {
     if (!form.name.trim() || !form.price) return;
@@ -2157,7 +2448,7 @@ function MenuScreen({
                 name: form.name,
                 price: Number.parseFloat(form.price),
                 category: form.category,
-                emoji: form.emoji,
+                imageUrl: form.imageUrl,
                 available: form.available,
               }
             : i,
@@ -2171,7 +2462,7 @@ function MenuScreen({
         name: form.name,
         price: Number.parseFloat(form.price),
         category: form.category,
-        emoji: form.emoji,
+        imageUrl: form.imageUrl,
         available: form.available,
       };
       onUpdate([...allItems, newItem]);
@@ -2202,7 +2493,17 @@ function MenuScreen({
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-xl font-bold">Menu Management</h2>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            data-ocid="menu.back_button"
+            onClick={onBack}
+            className="flex items-center gap-1.5 h-10 px-3 rounded-xl hover:bg-secondary transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back
+          </button>
+          <h2 className="font-display text-xl font-bold">Menu Management</h2>
+        </div>
         <Button
           data-ocid="menu.add_button"
           onClick={openAdd}
@@ -2249,7 +2550,17 @@ function MenuScreen({
               data-ocid={`menu.item.${idx + 1}`}
               className="bg-white rounded-xl border border-border p-3 flex items-center gap-3 shadow-xs"
             >
-              <span className="text-2xl">{item.emoji}</span>
+              <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#F8F5F0] flex items-center justify-center flex-shrink-0 border border-border">
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <UtensilsCrossed className="h-5 w-5 text-muted-foreground opacity-50" />
+                )}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm truncate">{item.name}</p>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -2291,28 +2602,40 @@ function MenuScreen({
 
       {/* Add/Edit Dialog */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-sm rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editItem ? "Edit Item" : "Add Menu Item"}
+        <DialogContent className="max-w-sm rounded-2xl bg-[#F8F5F0] shadow-xl p-0 overflow-hidden">
+          {/* Dialog Header */}
+          <div className="bg-[#0F5132] px-5 py-4">
+            <DialogTitle className="font-display text-white text-lg font-bold tracking-wide">
+              {editItem ? "Edit Menu Item" : "Add Menu Item"}
             </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
+            <p className="text-white/70 text-xs mt-0.5 font-body">
+              Fill in the details below
+            </p>
+          </div>
+
+          <div className="px-5 py-4 space-y-4">
+            {/* Item Name */}
             <div>
-              <Label className="text-sm">Item Name *</Label>
+              <Label className="text-xs font-semibold text-[#0F5132] uppercase tracking-wide font-body">
+                Item Name <span className="text-red-500">*</span>
+              </Label>
               <Input
                 value={form.name}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, name: e.target.value }))
                 }
                 placeholder="e.g. Masala Dosa"
-                className="mt-1"
+                className="mt-1.5 rounded-xl border-border/60 bg-white shadow-sm focus-visible:ring-[#0F5132] focus-visible:ring-2 h-11 font-body"
                 data-ocid="menu.item_name.input"
               />
             </div>
+
+            {/* Price + Category row */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-sm">Price (₹) *</Label>
+                <Label className="text-xs font-semibold text-[#0F5132] uppercase tracking-wide font-body">
+                  Price (₹) <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   type="number"
                   inputMode="decimal"
@@ -2321,63 +2644,120 @@ function MenuScreen({
                     setForm((f) => ({ ...f, price: e.target.value }))
                   }
                   placeholder="0.00"
-                  className="mt-1"
+                  className="mt-1.5 rounded-xl border-border/60 bg-white shadow-sm focus-visible:ring-[#0F5132] focus-visible:ring-2 h-11 font-body"
                   data-ocid="menu.item_price.input"
                 />
               </div>
               <div>
-                <Label className="text-sm">Emoji</Label>
-                <Input
-                  value={form.emoji}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, emoji: e.target.value }))
+                <Label className="text-xs font-semibold text-[#0F5132] uppercase tracking-wide font-body">
+                  Category
+                </Label>
+                <Select
+                  value={form.category}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, category: v as Category }))
                   }
-                  placeholder="🍽️"
-                  className="mt-1"
-                />
+                >
+                  <SelectTrigger
+                    className="mt-1.5 rounded-xl border-border/60 bg-white shadow-sm focus-visible:ring-[#0F5132] h-11 font-body"
+                    data-ocid="menu.category.select"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+
+            {/* Food Image Upload */}
             <div>
-              <Label className="text-sm">Category</Label>
-              <Select
-                value={form.category}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, category: v as Category }))
-                }
-              >
-                <SelectTrigger
-                  className="mt-1"
-                  data-ocid="menu.category.select"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs font-semibold text-[#0F5132] uppercase tracking-wide font-body">
+                Food Image
+              </Label>
+              <div className="mt-1.5">
+                {form.imageUrl ? (
+                  /* Image preview card */
+                  <div className="relative rounded-xl overflow-hidden border border-border/60 bg-white shadow-sm">
+                    <img
+                      src={form.imageUrl}
+                      alt="Food preview"
+                      className="w-full h-36 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
+                      className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow transition-colors"
+                      data-ocid="menu.remove_image.button"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  /* Upload button */
+                  <label
+                    className="flex flex-col items-center justify-center gap-2 w-full h-28 rounded-xl border-2 border-dashed border-[#FF7A00]/50 bg-white cursor-pointer hover:bg-[#FF7A00]/5 transition-colors"
+                    data-ocid="menu.upload_button"
+                  >
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#FF7A00]/10">
+                      <ImageIcon className="h-5 w-5 text-[#FF7A00]" />
+                    </div>
+                    <span className="text-xs font-medium text-[#FF7A00] font-body">
+                      Upload Food Image
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-body">
+                      JPG, PNG, WebP — max 2MB
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                )}
+                {imageError && (
+                  <p className="text-xs text-red-500 mt-1.5 font-body">
+                    {imageError}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Available toggle */}
+            <div className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 border border-border/60 shadow-sm">
               <Switch
                 id="available"
                 checked={form.available}
                 onCheckedChange={(v) =>
                   setForm((f) => ({ ...f, available: v }))
                 }
-                className="data-[state=checked]:bg-primary"
+                className="data-[state=checked]:bg-[#0F5132]"
               />
-              <Label htmlFor="available" className="text-sm cursor-pointer">
-                Available
-              </Label>
+              <div>
+                <Label
+                  htmlFor="available"
+                  className="text-sm font-semibold cursor-pointer font-body text-[#0F5132]"
+                >
+                  Available
+                </Label>
+                <p className="text-[10px] text-muted-foreground font-body">
+                  Show this item on the billing screen
+                </p>
+              </div>
             </div>
           </div>
-          <DialogFooter className="gap-2">
+
+          <DialogFooter className="gap-2 px-5 pb-5 pt-0">
             <Button
               variant="outline"
               onClick={() => setShowModal(false)}
+              className="flex-1 rounded-xl h-11 border-[#0F5132]/30 text-[#0F5132] font-body"
               data-ocid="menu.cancel_button"
             >
               Cancel
@@ -2385,7 +2765,7 @@ function MenuScreen({
             <Button
               onClick={handleSave}
               disabled={!form.name.trim() || !form.price}
-              className="bg-primary"
+              className="flex-1 rounded-xl h-11 bg-[#0F5132] hover:bg-[#0F5132]/90 text-white font-body"
               data-ocid="menu.save_button"
             >
               {editItem ? "Save Changes" : "Add Item"}
@@ -2426,7 +2806,10 @@ function MenuScreen({
 
 // ── ReportsScreen ─────────────────────────────────────────────────────────────
 
-function ReportsScreen({ orders }: { orders: Order[] }) {
+function ReportsScreen({
+  orders,
+  onBack,
+}: { orders: Order[]; onBack: () => void }) {
   const today = new Date();
   const [startDate, setStartDate] = useState(() => {
     const d = new Date(today);
@@ -2499,7 +2882,17 @@ function ReportsScreen({ orders }: { orders: Order[] }) {
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-5">
-      <h2 className="font-display text-xl font-bold">Reports</h2>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          data-ocid="reports.back_button"
+          onClick={onBack}
+          className="flex items-center gap-1.5 h-10 px-3 rounded-xl hover:bg-secondary transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <h2 className="font-display text-xl font-bold">Reports</h2>
+      </div>
 
       {/* Date range */}
       <div className="bg-white rounded-2xl border border-border p-4 shadow-xs">
@@ -2663,11 +3056,13 @@ function EmployeesScreen({
   branchId,
   onUpdate,
   allEmployees,
+  onBack,
 }: {
   employees: Employee[];
   branchId: number;
   onUpdate: (e: Employee[]) => void;
   allEmployees: Employee[];
+  onBack: () => void;
 }) {
   const [showModal, setShowModal] = useState(false);
   const [editEmp, setEditEmp] = useState<Employee | null>(null);
@@ -2748,7 +3143,17 @@ function EmployeesScreen({
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-xl font-bold">Employees</h2>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            data-ocid="employee.back_button"
+            onClick={onBack}
+            className="flex items-center gap-1.5 h-10 px-3 rounded-xl hover:bg-secondary transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back
+          </button>
+          <h2 className="font-display text-xl font-bold">Employees</h2>
+        </div>
         <Button
           data-ocid="employee.add_button"
           onClick={openAdd}
@@ -2951,10 +3356,12 @@ function GSTSettingsScreen({
   gstSettings,
   branchId,
   onUpdate,
+  onBack,
 }: {
   gstSettings: GSTSettings[];
   branchId: number;
   onUpdate: (settings: GSTSettings[]) => void;
+  onBack: () => void;
 }) {
   const current = gstSettings.find((g) => g.branchId === branchId) ?? {
     branchId,
@@ -2998,7 +3405,17 @@ function GSTSettingsScreen({
 
   return (
     <div className="max-w-md mx-auto p-4 space-y-5">
-      <h2 className="font-display text-xl font-bold">GST Settings</h2>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          data-ocid="settings.back_button"
+          onClick={onBack}
+          className="flex items-center gap-1.5 h-10 px-3 rounded-xl hover:bg-secondary transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <h2 className="font-display text-xl font-bold">GST Settings</h2>
+      </div>
       <p className="text-sm text-muted-foreground">{branch?.name}</p>
 
       <div className="bg-white rounded-2xl border border-border p-5 shadow-xs space-y-5">

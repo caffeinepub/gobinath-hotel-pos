@@ -17,8 +17,8 @@ export default {
     extend: {
       fontFamily: {
         display: ["'Playfair Display'", "Fraunces", "Georgia", "serif"],
-        body: ["Plus Jakarta Sans", "Cabinet Grotesk", "sans-serif"],
-        sans: ["Plus Jakarta Sans", "Cabinet Grotesk", "sans-serif"],
+        body: ["Poppins", "'Plus Jakarta Sans'", "Cabinet Grotesk", "sans-serif"],
+        sans: ["Poppins", "'Plus Jakarta Sans'", "Cabinet Grotesk", "sans-serif"],
       },
       colors: {
         border: "oklch(var(--border))",
@@ -75,6 +75,9 @@ export default {
           green: "oklch(var(--pos-green))",
           orange: "oklch(var(--pos-orange))",
           cream: "oklch(var(--pos-cream))",
+          teal: "oklch(var(--pos-teal))",
+          blue: "oklch(var(--pos-blue))",
+          grey: "oklch(var(--pos-grey))",
         },
       },
       borderRadius: {
@@ -87,8 +90,9 @@ export default {
       },
       boxShadow: {
         xs: "0 1px 2px 0 rgba(0,0,0,0.05)",
-        card: "0 2px 12px 0 rgba(27,67,50,0.08), 0 1px 3px 0 rgba(27,67,50,0.06)",
-        "card-hover": "0 6px 24px 0 rgba(27,67,50,0.14), 0 2px 8px 0 rgba(27,67,50,0.08)",
+        card: "0 2px 16px 0 rgba(15,81,50,0.08), 0 1px 4px 0 rgba(15,81,50,0.05)",
+        "card-hover": "0 8px 32px 0 rgba(15,81,50,0.16), 0 2px 8px 0 rgba(15,81,50,0.10)",
+        "stat-card": "0 2px 12px 0 rgba(15,81,50,0.06), 0 1px 3px 0 rgba(15,81,50,0.04)",
         glow: "0 0 0 3px oklch(var(--pos-orange) / 0.3)",
       },
       keyframes: {

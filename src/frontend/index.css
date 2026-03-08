@@ -2,69 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Fonts ──────────────────────────────────────────────────── */
-@font-face {
-  font-family: "Fraunces";
-  src: url("/assets/fonts/Fraunces.woff2") format("woff2");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Playfair Display";
-  src: url("/assets/fonts/PlayfairDisplay.woff2") format("woff2");
-  font-weight: 400 900;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Plus Jakarta Sans";
-  src: url("/assets/fonts/PlusJakartaSans.woff2") format("woff2");
-  font-weight: 200 800;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Cabinet Grotesk";
-  src: url("/assets/fonts/CabinetGrotesk.woff2") format("woff2");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
 @layer base {
   :root {
     --radius: 0.75rem;
 
-    /* ── Brand ── */
-    /* Dark Emerald Green #0F5132 → oklch(0.28 0.08 151) */
-    --pos-green: 0.28 0.08 151;
+    /* ── Brand Palette ── */
+    /* Deep Emerald Green #0F5132 → oklch(0.28 0.085 151) */
+    --pos-green: 0.28 0.085 151;
     /* Warm Orange #FF7A00 → oklch(0.70 0.19 48) */
     --pos-orange: 0.70 0.19 48;
-    /* Soft Cream #F8F5F0 → oklch(0.975 0.006 85) */
-    --pos-cream: 0.975 0.006 85;
-    /* Deep cream for cards: #EDEDEA */
-    --pos-cream-card: 0.94 0.005 90;
+    /* Soft Cream #F8F5F0 → oklch(0.975 0.007 85) */
+    --pos-cream: 0.975 0.007 85;
+    /* Soft Teal #1F7A8C → oklch(0.52 0.09 210) */
+    --pos-teal: 0.52 0.09 210;
+    /* Blue for Employees #1E40AF → oklch(0.42 0.16 260) */
+    --pos-blue: 0.42 0.16 260;
+    /* Grey for Settings → oklch(0.52 0.01 250) */
+    --pos-grey: 0.52 0.01 250;
 
     /* ── Semantic tokens (light / cream theme) ── */
-    --background: 0.975 0.006 85;
-    --foreground: 0.18 0.05 151;
+    /* Background: Light Cream #F8F5F0 */
+    --background: 0.975 0.007 85;
+    --foreground: 0.15 0.05 151;
 
     --card: 1 0 0;
-    --card-foreground: 0.18 0.05 151;
+    --card-foreground: 0.15 0.05 151;
 
     --popover: 1 0 0;
-    --popover-foreground: 0.18 0.05 151;
+    --popover-foreground: 0.15 0.05 151;
 
-    --primary: 0.28 0.08 151;
+    /* Primary: Deep Emerald Green #0F5132 */
+    --primary: 0.28 0.085 151;
     --primary-foreground: 0.97 0 0;
 
+    /* Secondary: slightly warmer cream for hover states */
     --secondary: 0.94 0.008 85;
     --secondary-foreground: 0.22 0.06 151;
 
     --muted: 0.94 0.007 85;
     --muted-foreground: 0.50 0.03 151;
 
+    /* Accent: Warm Orange #FF7A00 */
     --accent: 0.70 0.19 48;
     --accent-foreground: 1 0 0;
 
@@ -75,21 +53,21 @@
     --input: 0.90 0.01 90;
     --ring: 0.35 0.09 151;
 
-    /* Charts */
-    --chart-1: 0.35 0.09 151;
-    --chart-2: 0.72 0.18 52;
-    --chart-3: 0.55 0.14 151;
+    /* Charts: emerald, orange, teal, gold, blue */
+    --chart-1: 0.28 0.085 151;
+    --chart-2: 0.70 0.19 48;
+    --chart-3: 0.52 0.09 210;
     --chart-4: 0.65 0.12 70;
-    --chart-5: 0.48 0.10 200;
+    --chart-5: 0.42 0.16 260;
 
-    --sidebar: 0.35 0.09 151;
+    --sidebar: 0.28 0.085 151;
     --sidebar-foreground: 0.97 0 0;
-    --sidebar-primary: 0.72 0.18 52;
+    --sidebar-primary: 0.70 0.19 48;
     --sidebar-primary-foreground: 1 0 0;
-    --sidebar-accent: 0.28 0.07 151;
+    --sidebar-accent: 0.22 0.07 151;
     --sidebar-accent-foreground: 0.97 0 0;
-    --sidebar-border: 0.28 0.07 151;
-    --sidebar-ring: 0.72 0.18 52;
+    --sidebar-border: 0.22 0.07 151;
+    --sidebar-ring: 0.70 0.19 48;
   }
 
   * {
@@ -153,5 +131,12 @@
   .numpad-btn:active {
     transform: scale(0.93);
     background: oklch(var(--secondary));
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
