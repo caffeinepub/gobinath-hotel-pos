@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Fonts ──────────────────────────────────────────────────── */
+@font-face {
+  font-family: "Fraunces";
+  src: url("/assets/fonts/Fraunces.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/assets/fonts/PlusJakartaSans.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("/assets/fonts/CabinetGrotesk.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+
+    /* ── Brand ── */
+    /* Dark Emerald Green #0F5132 → oklch(0.28 0.08 151) */
+    --pos-green: 0.28 0.08 151;
+    /* Warm Orange #FF7A00 → oklch(0.70 0.19 48) */
+    --pos-orange: 0.70 0.19 48;
+    /* Soft Cream #F8F5F0 → oklch(0.975 0.006 85) */
+    --pos-cream: 0.975 0.006 85;
+    /* Deep cream for cards: #EDEDEA */
+    --pos-cream-card: 0.94 0.005 90;
+
+    /* ── Semantic tokens (light / cream theme) ── */
+    --background: 0.975 0.006 85;
+    --foreground: 0.18 0.05 151;
+
+    --card: 1 0 0;
+    --card-foreground: 0.18 0.05 151;
+
+    --popover: 1 0 0;
+    --popover-foreground: 0.18 0.05 151;
+
+    --primary: 0.28 0.08 151;
+    --primary-foreground: 0.97 0 0;
+
+    --secondary: 0.94 0.008 85;
+    --secondary-foreground: 0.22 0.06 151;
+
+    --muted: 0.94 0.007 85;
+    --muted-foreground: 0.50 0.03 151;
+
+    --accent: 0.70 0.19 48;
+    --accent-foreground: 1 0 0;
+
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+
+    --border: 0.88 0.01 90;
+    --input: 0.90 0.01 90;
+    --ring: 0.35 0.09 151;
+
+    /* Charts */
+    --chart-1: 0.35 0.09 151;
+    --chart-2: 0.72 0.18 52;
+    --chart-3: 0.55 0.14 151;
+    --chart-4: 0.65 0.12 70;
+    --chart-5: 0.48 0.10 200;
+
+    --sidebar: 0.35 0.09 151;
+    --sidebar-foreground: 0.97 0 0;
+    --sidebar-primary: 0.72 0.18 52;
+    --sidebar-primary-foreground: 1 0 0;
+    --sidebar-accent: 0.28 0.07 151;
+    --sidebar-accent-foreground: 0.97 0 0;
+    --sidebar-border: 0.28 0.07 151;
+    --sidebar-ring: 0.72 0.18 52;
+  }
+
+  * {
+    @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+/* ── Print styles ──────────────────────────────────────────── */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #bill-print-area, #bill-print-area * {
+    visibility: visible;
+  }
+  #bill-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    font-size: 12px;
+  }
+}
+
+/* ── Touch utilities ────────────────────────────────────────── */
+@layer utilities {
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+  .pin-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--pin-color, oklch(var(--primary)));
+    transition: background 0.15s;
+  }
+  .pin-dot.filled {
+    background: var(--pin-color, oklch(var(--primary)));
+  }
+  .numpad-btn {
+    @apply flex items-center justify-center rounded-xl text-xl font-semibold;
+    min-height: 64px;
+    background: oklch(var(--card));
+    border: 1.5px solid oklch(var(--border));
+    transition: background 0.12s, transform 0.08s;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .numpad-btn:active {
+    transform: scale(0.93);
+    background: oklch(var(--secondary));
+  }
+}
