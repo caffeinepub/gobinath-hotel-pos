@@ -47,6 +47,7 @@ import {
   Settings,
   Shield,
   ShoppingCart,
+  Store,
   Trash2,
   TrendingUp,
   UserCog,
@@ -54,6 +55,7 @@ import {
   UtensilsCrossed,
   X,
 } from "lucide-react";
+import { motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bar,
@@ -1093,14 +1095,21 @@ function LoginScreen({
           </>
         ) : (
           <>
-            <div className="flex items-center gap-2 mb-4">
-              <button
-                type="button"
-                onClick={onBack}
-                className="p-1 rounded-lg hover:bg-secondary transition-colors"
-              >
-                <ArrowLeft className="h-5 w-5 text-muted-foreground" />
-              </button>
+            {/* Logo on PIN screen */}
+            <div className="flex flex-col items-center mb-4">
+              <div className="mb-3 rounded-xl shadow-lg overflow-hidden border-2 border-white/20 w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0">
+                <img
+                  src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
+                  alt="Gobinath Hotel Logo"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <h1 className="font-display text-xl font-bold text-foreground text-center leading-tight">
+                Gobinath Hotel
+              </h1>
+            </div>
+
+            <div className="relative flex items-center justify-center mb-4">
               <h2 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
                 {loginType === "owner" ? (
                   <>
@@ -1114,6 +1123,15 @@ function LoginScreen({
                   </>
                 )}
               </h2>
+              <button
+                type="button"
+                data-ocid="login.close_button"
+                onClick={onBack}
+                className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-secondary transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5 text-muted-foreground" />
+              </button>
             </div>
 
             {/* PIN dots */}
@@ -1193,16 +1211,8 @@ function LoginScreen({
       </div>
 
       {/* Footer */}
-      <p className="text-white/30 text-xs mt-6">
-        © {new Date().getFullYear()} · Built with{" "}
-        <a
-          href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-          className="underline"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          caffeine.ai
-        </a>
+      <p className="text-center text-xs mt-6" style={{ color: "#9ca3af" }}>
+        Powered By NextYU Solution
       </p>
     </div>
   );
@@ -1210,41 +1220,174 @@ function LoginScreen({
 
 // ── BranchSelectScreen ────────────────────────────────────────────────────────
 
+const BRANCH_ICONS = [Store, Building2];
+const BRANCH_DESCRIPTIONS = [
+  "Main Branch · Sethurapatti",
+  "Second Branch · JJ College",
+];
+
 function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
+  const containerVariants = {
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: 0.12,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const headerVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: "easeOut" as const },
+    },
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 28, scale: 0.97 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.45, ease: "easeOut" as const },
+    },
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
-      <div className="text-center mb-8">
-        <h1 className="font-display text-2xl font-bold text-foreground mb-1">
+    <div
+      data-ocid="branch_select.page"
+      className="min-h-screen flex flex-col items-center justify-center p-5 sm:p-8"
+      style={{
+        background:
+          "linear-gradient(160deg, oklch(0.22 0.07 151) 0%, oklch(0.18 0.06 162) 50%, oklch(0.15 0.05 155) 100%)",
+      }}
+    >
+      {/* Logo */}
+      <motion.div
+        variants={headerVariants}
+        initial="hidden"
+        animate="visible"
+        className="mb-6 flex flex-col items-center"
+      >
+        <img
+          src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
+          alt="Gobinath Hotel Logo"
+          className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover shadow-lg border-2 border-white/20 mb-4"
+        />
+        <h1
+          className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-1"
+          style={{ fontFamily: "'Playfair Display', Fraunces, Georgia, serif" }}
+        >
           Select Branch
         </h1>
-        <p className="text-muted-foreground text-sm">
+        <p
+          className="text-sm sm:text-base text-white/60"
+          style={{ fontFamily: "Plus Jakarta Sans, Poppins, sans-serif" }}
+        >
           Choose the branch you want to manage
         </p>
-      </div>
-      <div className="w-full max-w-md grid gap-4">
-        {BRANCHES.map((branch, i) => (
-          <button
-            type="button"
-            key={branch.id}
-            data-ocid={`branch.item.${i + 1}`}
-            onClick={() => onSelect(branch.id)}
-            className="w-full flex items-center gap-4 p-5 rounded-2xl bg-white border-2 border-border hover:border-primary hover:bg-primary/5 active:scale-98 transition-all shadow-card text-left group"
-          >
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Building2 className="h-6 w-6 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-foreground truncate">
-                {branch.name}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {branch.id === 1 ? "Main Branch" : "Second Branch"}
-              </p>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-          </button>
-        ))}
-      </div>
+      </motion.div>
+
+      {/* Branch cards */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="w-full max-w-lg grid grid-cols-1 sm:grid-cols-2 gap-4"
+      >
+        {BRANCHES.map((branch, i) => {
+          const Icon = BRANCH_ICONS[i] ?? Building2;
+          const description = BRANCH_DESCRIPTIONS[i] ?? "";
+
+          return (
+            <motion.button
+              type="button"
+              key={branch.id}
+              data-ocid={`branch_select.item.${i + 1}`}
+              variants={cardVariants}
+              whileHover={{ scale: 1.04, y: -3 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onSelect(branch.id)}
+              className="group relative flex flex-col items-center text-center gap-4 p-6 sm:p-7 rounded-2xl border border-white/10 cursor-pointer transition-shadow duration-300"
+              style={{
+                background: "oklch(0.975 0.006 85 / 0.97)",
+                boxShadow:
+                  "0 4px 24px 0 rgba(0,0,0,0.18), 0 1px 4px 0 rgba(0,0,0,0.10)",
+                minHeight: "160px",
+              }}
+            >
+              {/* Hover highlight overlay */}
+              <div
+                className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                style={{
+                  background:
+                    "linear-gradient(135deg, oklch(0.28 0.08 151 / 0.06) 0%, oklch(0.70 0.19 48 / 0.04) 100%)",
+                }}
+              />
+
+              {/* Icon circle */}
+              <motion.div
+                whileHover={{ scale: 1.12 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="relative w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{
+                  background:
+                    "linear-gradient(135deg, oklch(0.28 0.08 151 / 0.12) 0%, oklch(0.35 0.09 151 / 0.08) 100%)",
+                  boxShadow:
+                    "0 2px 12px 0 rgba(15,81,50,0.18), 0 0 0 2px oklch(0.28 0.08 151 / 0.10)",
+                }}
+              >
+                <Icon
+                  className="h-7 w-7 transition-colors duration-300 group-hover:text-accent"
+                  style={{ color: "oklch(0.28 0.08 151)" }}
+                />
+              </motion.div>
+
+              {/* Text */}
+              <div className="flex flex-col items-center gap-1 min-w-0 w-full">
+                <p
+                  className="font-semibold text-base sm:text-lg leading-tight truncate w-full"
+                  style={{
+                    fontFamily: "'Playfair Display', Fraunces, Georgia, serif",
+                    color: "oklch(0.18 0.05 151)",
+                  }}
+                >
+                  {branch.name}
+                </p>
+                <p
+                  className="text-xs sm:text-sm leading-snug"
+                  style={{
+                    fontFamily: "Plus Jakarta Sans, Poppins, sans-serif",
+                    color: "oklch(0.50 0.03 151)",
+                  }}
+                >
+                  {description}
+                </p>
+              </div>
+
+              {/* Arrow */}
+              <ChevronRight
+                className="absolute bottom-4 right-4 h-4 w-4 opacity-30 group-hover:opacity-60 group-hover:translate-x-0.5 transition-all duration-300"
+                style={{ color: "oklch(0.28 0.08 151)" }}
+              />
+            </motion.button>
+          );
+        })}
+      </motion.div>
+
+      {/* Footer branding */}
+      <motion.p
+        variants={headerVariants}
+        initial="hidden"
+        animate="visible"
+        className="mt-10 text-xs text-white/30"
+        style={{ fontFamily: "Plus Jakarta Sans, Poppins, sans-serif" }}
+      >
+        Powered By NextYU Solution
+      </motion.p>
     </div>
   );
 }

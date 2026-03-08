@@ -16,9 +16,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Fraunces", "'Playfair Display'", "Georgia", "serif"],
-        body: ["Plus Jakarta Sans", "Poppins", "Cabinet Grotesk", "sans-serif"],
-        sans: ["Plus Jakarta Sans", "Poppins", "Cabinet Grotesk", "sans-serif"],
+        display: ["'Playfair Display'", "Fraunces", "Georgia", "serif"],
+        body: ["Plus Jakarta Sans", "Cabinet Grotesk", "sans-serif"],
+        sans: ["Plus Jakarta Sans", "Cabinet Grotesk", "sans-serif"],
       },
       colors: {
         border: "oklch(var(--border))",
