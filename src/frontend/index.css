@@ -69,22 +69,22 @@
   /* ── Light Theme Override ── */
   .light {
     --background: 0.975 0.007 85;
-    --foreground: 0.15 0.05 151;
+    --foreground: 0.12 0.02 30;
 
     --card: 1 0 0;
-    --card-foreground: 0.15 0.05 151;
+    --card-foreground: 0.12 0.02 30;
 
     --popover: 1 0 0;
-    --popover-foreground: 0.15 0.05 151;
+    --popover-foreground: 0.12 0.02 30;
 
     --primary: 0.705 0.185 42;
     --primary-foreground: 0.10 0.01 0;
 
     --secondary: 0.94 0.008 85;
-    --secondary-foreground: 0.22 0.06 151;
+    --secondary-foreground: 0.20 0.02 30;
 
     --muted: 0.94 0.007 85;
-    --muted-foreground: 0.50 0.03 151;
+    --muted-foreground: 0.45 0.01 30;
 
     --accent: 0.730 0.175 45;
     --accent-foreground: 0.10 0.01 0;
@@ -100,7 +100,7 @@
     --chart-2: 0.52 0.09 210;
     --chart-3: 0.65 0.12 70;
     --chart-4: 0.42 0.16 260;
-    --chart-5: 0.28 0.085 151;
+    --chart-5: 0.55 0.14 42;
 
     /* Sidebar: white #FFFFFF with light gray border #E5E7EB */
     --sidebar: 1 0 0;

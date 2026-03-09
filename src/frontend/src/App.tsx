@@ -45,10 +45,14 @@ import {
   ChevronUp,
   Clock,
   Edit3,
+  Eye,
+  EyeOff,
   History,
   ImageIcon,
   IndianRupee,
+  KeyRound,
   LayoutDashboard,
+  Lock,
   LogOut,
   MapPin,
   Menu as MenuIcon,
@@ -69,6 +73,7 @@ import {
   Sun,
   Trash2,
   TrendingUp,
+  User,
   UserCog,
   Users,
   UtensilsCrossed,
@@ -151,6 +156,14 @@ interface AdvanceRecord {
   createdAt: number;
 }
 
+interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  date: string; // YYYY-MM-DD
+  status: "Present" | "Absent";
+  createdAt: number;
+}
+
 interface Employee {
   id: string;
   branchId: number;
@@ -189,6 +202,15 @@ interface GSTSettings {
 interface UpiSettings {
   branchId: number;
   upiId: string;
+}
+
+interface UserAccount {
+  id: string;
+  username: string;
+  mobile: string; // 10 digits
+  password: string; // stored as plain text in localStorage for this demo
+  branchId: number;
+  createdAt: number;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -538,6 +560,9 @@ function initializeData() {
   if (!localStorage.getItem("pos_salary_payments")) {
     lsSet("pos_salary_payments", []);
   }
+  if (!localStorage.getItem("pos_attendance")) {
+    lsSet("pos_attendance", []);
+  }
   if (!localStorage.getItem("pos_gst_settings")) {
     const gst: GSTSettings[] = [
       { branchId: 1, enabled: false, gstNumber: "", percentage: 5 },
@@ -551,6 +576,9 @@ function initializeData() {
       { branchId: 2, upiId: "" },
     ];
     lsSet("pos_upi_settings", upi);
+  }
+  if (!localStorage.getItem("pos_user_accounts")) {
+    lsSet("pos_user_accounts", []);
   }
 }
 
@@ -589,6 +617,9 @@ export default function App() {
   const [salaryPayments, setSalaryPayments] = useState<SalaryPayment[]>(() =>
     lsGet<SalaryPayment[]>("pos_salary_payments", []),
   );
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() =>
+    lsGet<AttendanceRecord[]>("pos_attendance", []),
+  );
   const [gstSettings, setGstSettings] = useState<GSTSettings[]>(() =>
     lsGet<GSTSettings[]>("pos_gst_settings", [
       { branchId: 1, enabled: false, gstNumber: "", percentage: 5 },
@@ -600,6 +631,9 @@ export default function App() {
       { branchId: 1, upiId: "" },
       { branchId: 2, upiId: "" },
     ]),
+  );
+  const [userAccounts, setUserAccounts] = useState<UserAccount[]>(() =>
+    lsGet<UserAccount[]>("pos_user_accounts", []),
   );
 
   // Cart state
@@ -644,6 +678,12 @@ export default function App() {
   useEffect(() => {
     lsSet("pos_upi_settings", upiSettings);
   }, [upiSettings]);
+  useEffect(() => {
+    lsSet("pos_attendance", attendance);
+  }, [attendance]);
+  useEffect(() => {
+    lsSet("pos_user_accounts", userAccounts);
+  }, [userAccounts]);
 
   const activeBranchObj = BRANCHES.find((b) => b.id === activeBranch)!;
   const activeGST = gstSettings.find((g) => g.branchId === activeBranch) ?? {
@@ -710,6 +750,24 @@ export default function App() {
         setPin("");
       }
     }
+  }
+
+  function handleUserLogin(
+    username: string,
+    mobile: string,
+    password: string,
+  ): string | null {
+    const account = userAccounts.find(
+      (u) =>
+        u.username.toLowerCase() === username.toLowerCase() &&
+        u.mobile === mobile,
+    );
+    if (!account) return "Invalid username or mobile number.";
+    if (account.password !== password) return "Invalid password.";
+    setRole("staff");
+    setActiveBranch(account.branchId);
+    setScreen("billing");
+    return null;
   }
 
   function handleLogout() {
@@ -896,6 +954,9 @@ export default function App() {
           onPinClearAll={handlePinClearAll}
           onLogin={handleLogin}
           onBack={() => setLoginType(null)}
+          userAccounts={userAccounts}
+          onUserLogin={handleUserLogin}
+          onUpdateUserAccounts={setUserAccounts}
         />
       )}
 
@@ -1012,6 +1073,8 @@ export default function App() {
               branchId={activeBranch}
               onUpdate={setEmployees}
               allEmployees={employees}
+              attendance={attendance}
+              onUpdateAttendance={setAttendance}
               onBack={() => setScreen("dashboard")}
             />
           )}
@@ -1023,6 +1086,8 @@ export default function App() {
               branchId={activeBranch}
               onUpdateGst={setGstSettings}
               onUpdateUpi={setUpiSettings}
+              userAccounts={userAccounts}
+              onUpdateUserAccounts={setUserAccounts}
               onBack={() => setScreen("dashboard")}
             />
           )}
@@ -1309,6 +1374,28 @@ function SidebarClock() {
 
 // ── LoginScreen ───────────────────────────────────────────────────────────────
 
+type LoginView =
+  | "select"
+  | "user"
+  | "pin-entry"
+  | "forgot-step1"
+  | "forgot-step2"
+  | "forgot-step3";
+
+function validatePassword(pw: string): string | null {
+  if (pw.length < 8)
+    return "Password must contain 8 characters including uppercase, lowercase, number and special character.";
+  if (!/[A-Z]/.test(pw))
+    return "Password must contain 8 characters including uppercase, lowercase, number and special character.";
+  if (!/[a-z]/.test(pw))
+    return "Password must contain 8 characters including uppercase, lowercase, number and special character.";
+  if (!/[0-9]/.test(pw))
+    return "Password must contain 8 characters including uppercase, lowercase, number and special character.";
+  if (!/[^A-Za-z0-9]/.test(pw))
+    return "Password must contain 8 characters including uppercase, lowercase, number and special character.";
+  return null;
+}
+
 function LoginScreen({
   loginType,
   pin,
@@ -1319,6 +1406,9 @@ function LoginScreen({
   onPinClearAll,
   onLogin,
   onBack: _onBack,
+  userAccounts,
+  onUserLogin,
+  onUpdateUserAccounts,
 }: {
   loginType: "owner" | "staff" | null;
   pin: string;
@@ -1329,225 +1419,704 @@ function LoginScreen({
   onPinClearAll: () => void;
   onLogin: () => void;
   onBack: () => void;
+  userAccounts: UserAccount[];
+  onUserLogin: (
+    username: string,
+    mobile: string,
+    password: string,
+  ) => string | null;
+  onUpdateUserAccounts: (accounts: UserAccount[]) => void;
 }) {
+  const [loginView, setLoginView] = useState<LoginView>("select");
+
+  // User login form state
+  const [uUsername, setUUsername] = useState("");
+  const [uMobile, setUMobile] = useState("");
+  const [uPassword, setUPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [userLoginError, setUserLoginError] = useState("");
+  const [pwTouched, setPwTouched] = useState(false);
+
+  // Forgot password state
+  const [forgotMobile, setForgotMobile] = useState("");
+  const [forgotOtp, setForgotOtp] = useState("");
+  const [generatedOtp, setGeneratedOtp] = useState("");
+  const [forgotOtpError, setForgotOtpError] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [forgotPwError, setForgotPwError] = useState("");
+
+  const pwError = pwTouched ? validatePassword(uPassword) : null;
+  const userFormReady =
+    uUsername.trim().length > 0 &&
+    uMobile.trim().length === 10 &&
+    uPassword.length > 0 &&
+    validatePassword(uPassword) === null;
+
+  function handleUserSubmit() {
+    setUserLoginError("");
+    const err = onUserLogin(uUsername.trim(), uMobile.trim(), uPassword);
+    if (err) setUserLoginError(err);
+  }
+
+  function handleSendOtp() {
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    setGeneratedOtp(otp);
+    setForgotOtpError("");
+    setLoginView("forgot-step2");
+  }
+
+  function handleVerifyOtp() {
+    if (forgotOtp !== generatedOtp) {
+      setForgotOtpError("Invalid OTP. Please try again.");
+      return;
+    }
+    setForgotOtpError("");
+    setLoginView("forgot-step3");
+  }
+
+  function handleUpdatePassword() {
+    const pwErr = validatePassword(newPassword);
+    if (pwErr) {
+      setForgotPwError(pwErr);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setForgotPwError("Passwords do not match.");
+      return;
+    }
+    const idx = userAccounts.findIndex((u) => u.mobile === forgotMobile.trim());
+    if (idx === -1) {
+      setForgotPwError("No account found with this mobile number.");
+      return;
+    }
+    const updated = userAccounts.map((u, i) =>
+      i === idx ? { ...u, password: newPassword } : u,
+    );
+    onUpdateUserAccounts(updated);
+    toast.success("Password updated successfully!");
+    setLoginView("user");
+    setForgotMobile("");
+    setForgotOtp("");
+    setGeneratedOtp("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setForgotPwError("");
+  }
+
+  const logoEl = (
+    <div className="flex flex-col items-center mb-5 animate-fade-in flex-shrink-0">
+      <div className="mb-3 rounded-2xl shadow-2xl overflow-hidden border-2 border-white/20 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0">
+        <img
+          src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
+          alt="Gobinath Hotel Logo"
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <h1 className="font-display text-3xl sm:text-4xl font-bold text-white mb-1 tracking-tight text-center drop-shadow-lg">
+        Gobinath Hotel
+      </h1>
+      <p className="text-white/60 text-xs sm:text-sm font-body tracking-[0.2em] uppercase">
+        Restaurant Management System
+      </p>
+    </div>
+  );
+
+  const cardStyle: React.CSSProperties = {
+    background: "rgba(248, 245, 240, 0.97)",
+    backdropFilter: "blur(20px)",
+    border: "1px solid rgba(255,255,255,0.25)",
+  };
+
   return (
     <div
       className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
       style={{
         background:
-          "linear-gradient(135deg, #0F5132 0%, #0d3b26 40%, #0a2e35 70%, #0b3d3d 100%)",
+          "linear-gradient(135deg, #0B1120 0%, #13111C 50%, #1a0e2e 100%)",
       }}
     >
-      {/* Inner scroll container — constrained to viewport height */}
       <div className="flex flex-col items-center w-full px-5 sm:px-8 max-h-screen overflow-y-auto py-4 sm:py-6 scrollbar-hide">
-        {/* Logo + Title — always visible at top */}
-        <div className="flex flex-col items-center mb-5 animate-fade-in flex-shrink-0">
-          <div className="mb-3 rounded-2xl shadow-2xl overflow-hidden border-2 border-white/20 w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0">
-            <img
-              src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
-              alt="Gobinath Hotel Logo"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-white mb-1 tracking-tight text-center drop-shadow-lg">
-            Gobinath Hotel
-          </h1>
-          <p className="text-white/60 text-xs sm:text-sm font-body tracking-[0.2em] uppercase">
-            Restaurant Management System
-          </p>
-        </div>
+        {/* Logo + Title */}
+        {logoEl}
 
-        {/* Login Card */}
-        <div
-          className="w-full max-w-xs sm:max-w-sm rounded-3xl shadow-2xl p-5 sm:p-6 animate-scale-in flex-shrink-0"
-          style={{
-            background: "rgba(248, 245, 240, 0.97)",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(255,255,255,0.25)",
-          }}
-        >
-          {loginType === null ? (
-            <>
-              <h2 className="text-center font-display text-xl font-bold text-foreground mb-5">
-                Select Login Type
-              </h2>
-              <div className="grid grid-cols-2 gap-4">
-                {/* Owner Login */}
-                <button
-                  type="button"
-                  data-ocid="login.owner_button"
-                  onClick={() => onSelectType("owner")}
-                  className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 active:scale-95 transition-all min-h-[120px]"
-                  style={{
-                    borderColor: "#0F5132",
-                    background: "rgba(15,81,50,0.06)",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background =
-                      "rgba(15,81,50,0.12)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background =
-                      "rgba(15,81,50,0.06)";
-                  }}
-                >
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{ background: "rgba(15,81,50,0.12)" }}
-                  >
-                    <Shield className="h-7 w-7" style={{ color: "#0F5132" }} />
-                  </div>
-                  <span
-                    className="font-semibold text-sm text-center leading-tight"
-                    style={{ color: "#0F5132" }}
-                  >
-                    Owner Login
-                  </span>
-                </button>
-                {/* Staff Login */}
-                <button
-                  type="button"
-                  data-ocid="login.staff_button"
-                  onClick={() => onSelectType("staff")}
-                  className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 active:scale-95 transition-all min-h-[120px]"
-                  style={{
-                    borderColor: "#FF7A00",
-                    background: "rgba(255,122,0,0.06)",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background =
-                      "rgba(255,122,0,0.12)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background =
-                      "rgba(255,122,0,0.06)";
-                  }}
-                >
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{ background: "rgba(255,122,0,0.12)" }}
-                  >
-                    <UserCog className="h-7 w-7" style={{ color: "#FF7A00" }} />
-                  </div>
-                  <span
-                    className="font-semibold text-sm text-center leading-tight"
-                    style={{ color: "#FF7A00" }}
-                  >
-                    Staff Login
-                  </span>
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* PIN screen header — no logo, no close button */}
-              <div className="flex items-center justify-center mb-4">
-                <h2 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
-                  {loginType === "owner" ? (
-                    <>
-                      <Shield
-                        className="h-5 w-5"
-                        style={{ color: "#0F5132" }}
-                      />
-                      Owner PIN
-                    </>
-                  ) : (
-                    <>
-                      <UserCog
-                        className="h-5 w-5"
-                        style={{ color: "#FF7A00" }}
-                      />
-                      Staff PIN
-                    </>
-                  )}
-                </h2>
-              </div>
+        {/* ── Select Login Type (default) ── */}
+        {loginView === "select" && (
+          <div
+            data-ocid="login.select_screen"
+            className="w-full max-w-xs sm:max-w-sm rounded-3xl shadow-2xl p-5 sm:p-6 animate-scale-in flex-shrink-0"
+            style={cardStyle}
+          >
+            <h2 className="text-center font-display text-xl font-bold text-gray-800 mb-2">
+              Welcome
+            </h2>
+            <p className="text-center text-xs text-gray-500 mb-5">
+              Select your login type
+            </p>
 
-              {/* PIN dots */}
-              <div
-                className="flex justify-center gap-4 mb-5"
-                data-ocid="login.pin_input"
+            <div className="space-y-3">
+              {/* Owner Login */}
+              <button
+                type="button"
+                data-ocid="login.owner_card_button"
+                onClick={() => {
+                  onSelectType("owner");
+                  setLoginView("pin-entry");
+                }}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 active:scale-95 transition-all min-h-[64px]"
+                style={{
+                  borderColor: "#FF7A00",
+                  background: "rgba(255,122,0,0.04)",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "rgba(255,122,0,0.10)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "rgba(255,122,0,0.04)";
+                }}
               >
-                {[0, 1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className={`pin-dot ${i < pin.length ? "filled" : ""}`}
-                    style={
-                      loginType === "staff"
-                        ? ({
-                            "--pin-color": "#FF7A00",
-                          } as React.CSSProperties)
-                        : undefined
-                    }
-                  />
-                ))}
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgba(255,122,0,0.12)" }}
+                >
+                  <Shield className="h-5 w-5" style={{ color: "#FF7A00" }} />
+                </div>
+                <span
+                  className="font-semibold text-base"
+                  style={{ color: "#FF7A00" }}
+                >
+                  Owner Login
+                </span>
+              </button>
+
+              {/* Staff Login */}
+              <button
+                type="button"
+                data-ocid="login.staff_card_button"
+                onClick={() => setLoginView("user")}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 active:scale-95 transition-all min-h-[64px]"
+                style={{
+                  borderColor: "#334155",
+                  background: "rgba(51,65,85,0.04)",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "rgba(51,65,85,0.10)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "rgba(51,65,85,0.04)";
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgba(51,65,85,0.12)" }}
+                >
+                  <Users className="h-5 w-5" style={{ color: "#334155" }} />
+                </div>
+                <span
+                  className="font-semibold text-base"
+                  style={{ color: "#334155" }}
+                >
+                  Staff Login
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Staff / User Login ── */}
+        {loginView === "user" && (
+          <div
+            data-ocid="login.user_login_form"
+            className="w-full max-w-xs sm:max-w-sm rounded-3xl shadow-2xl p-5 sm:p-6 animate-scale-in flex-shrink-0"
+            style={cardStyle}
+          >
+            {/* Back button */}
+            <button
+              type="button"
+              data-ocid="login.back_button"
+              onClick={() => setLoginView("select")}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 mb-4 font-medium"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              Back
+            </button>
+
+            <h2 className="text-center font-display text-xl font-bold text-gray-800 mb-5">
+              Staff Login
+            </h2>
+
+            <div className="space-y-3">
+              {/* Username */}
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                <Input
+                  data-ocid="login.username_input"
+                  placeholder="Username"
+                  value={uUsername}
+                  onChange={(e) => setUUsername(e.target.value)}
+                  className="h-12 pl-10 rounded-xl border-gray-200 bg-white text-gray-800 placeholder:text-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
+                  autoComplete="username"
+                />
               </div>
 
-              {/* Error */}
-              {pinError && (
-                <p
-                  className="text-destructive text-sm text-center mb-3 font-medium animate-fade-in"
-                  data-ocid="login.error_state"
+              {/* Mobile */}
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                <Input
+                  data-ocid="login.mobile_input"
+                  placeholder="Mobile Number"
+                  value={uMobile}
+                  inputMode="numeric"
+                  maxLength={10}
+                  onChange={(e) =>
+                    setUMobile(e.target.value.replace(/\D/g, "").slice(0, 10))
+                  }
+                  className="h-12 pl-10 rounded-xl border-gray-200 bg-white text-gray-800 placeholder:text-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
+                  autoComplete="tel"
+                />
+              </div>
+
+              {/* Password */}
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                <Input
+                  data-ocid="login.password_input"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={uPassword}
+                  onChange={(e) => {
+                    setUPassword(e.target.value);
+                    if (!pwTouched && e.target.value.length > 0)
+                      setPwTouched(true);
+                  }}
+                  onBlur={() => setPwTouched(true)}
+                  className="h-12 pl-10 pr-10 rounded-xl border-gray-200 bg-white text-gray-800 placeholder:text-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  data-ocid="login.password_toggle"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
                 >
-                  {pinError}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {pwError && (
+                <p className="text-xs text-red-500 leading-tight">{pwError}</p>
+              )}
+
+              {/* Login error */}
+              {userLoginError && (
+                <p className="text-xs text-red-500 text-center font-medium">
+                  {userLoginError}
                 </p>
               )}
 
-              {/* Numpad — Row 4: C, 0, ⌫ */}
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
-                  <button
-                    type="button"
-                    key={d}
-                    className="numpad-btn"
-                    onClick={() => onPinDigit(d)}
-                  >
-                    {d}
-                  </button>
-                ))}
-                {/* Row 4: C, 0, ⌫ */}
+              {/* Sign In button */}
+              <Button
+                data-ocid="login.signin_button"
+                className="w-full h-12 text-base font-semibold rounded-xl text-white border-0 mt-1"
+                style={{ background: "#FF7A00" }}
+                disabled={!userFormReady}
+                onClick={handleUserSubmit}
+              >
+                <Check className="h-5 w-5 mr-2" />
+                Sign In
+              </Button>
+
+              {/* Forgot password */}
+              <div className="text-center">
                 <button
                   type="button"
-                  data-ocid="login.clear_button"
-                  className="numpad-btn font-bold"
-                  style={{ color: "#0F5132" }}
-                  onClick={onPinClearAll}
+                  data-ocid="login.forgot_password_link"
+                  onClick={() => {
+                    setForgotMobile("");
+                    setForgotOtp("");
+                    setGeneratedOtp("");
+                    setForgotOtpError("");
+                    setForgotPwError("");
+                    setNewPassword("");
+                    setConfirmPassword("");
+                    setLoginView("forgot-step1");
+                  }}
+                  className="text-xs text-orange-500 hover:underline font-medium"
                 >
-                  C
+                  Forgot Password?
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── PIN Entry ── */}
+        {loginView === "pin-entry" && (
+          <div
+            className="w-full max-w-xs sm:max-w-sm rounded-3xl shadow-2xl p-5 sm:p-6 animate-scale-in flex-shrink-0"
+            style={cardStyle}
+          >
+            {/* Back button */}
+            <button
+              type="button"
+              data-ocid="login.pin_back_button"
+              onClick={() => setLoginView("select")}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 mb-4 font-medium"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              Back
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center justify-center mb-4">
+              <h2 className="font-display text-lg font-bold text-gray-800 flex items-center gap-2">
+                {loginType === "owner" ? (
+                  <>
+                    <Shield className="h-5 w-5" style={{ color: "#FF7A00" }} />
+                    Owner PIN
+                  </>
+                ) : (
+                  <>
+                    <UserCog className="h-5 w-5" style={{ color: "#FF7A00" }} />
+                    Staff PIN
+                  </>
+                )}
+              </h2>
+            </div>
+
+            {/* PIN dots */}
+            <div
+              className="flex justify-center gap-4 mb-5"
+              data-ocid="login.pin_input"
+            >
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className={`pin-dot ${i < pin.length ? "filled" : ""}`}
+                  style={
+                    loginType === "staff"
+                      ? ({ "--pin-color": "#FF7A00" } as React.CSSProperties)
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
+
+            {/* Error */}
+            {pinError && (
+              <p
+                className="text-red-500 text-sm text-center mb-3 font-medium animate-fade-in"
+                data-ocid="login.error_state"
+              >
+                {pinError}
+              </p>
+            )}
+
+            {/* Numpad */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
                 <button
                   type="button"
+                  key={d}
                   className="numpad-btn"
-                  onClick={() => onPinDigit("0")}
+                  onClick={() => onPinDigit(d)}
                 >
-                  0
+                  {d}
                 </button>
+              ))}
+              <button
+                type="button"
+                data-ocid="login.clear_button"
+                className="numpad-btn font-bold"
+                style={{ color: "#FF7A00" }}
+                onClick={onPinClearAll}
+              >
+                C
+              </button>
+              <button
+                type="button"
+                className="numpad-btn"
+                onClick={() => onPinDigit("0")}
+              >
+                0
+              </button>
+              <button
+                type="button"
+                data-ocid="login.backspace_button"
+                className="numpad-btn text-red-500"
+                onClick={onPinClear}
+              >
+                ⌫
+              </button>
+            </div>
+
+            <Button
+              data-ocid="login.submit_button"
+              className="w-full h-12 text-base font-semibold rounded-xl text-white border-0"
+              style={{ background: "#FF7A00" }}
+              disabled={pin.length < 4}
+              onClick={onLogin}
+            >
+              <Check className="h-5 w-5 mr-2" />
+              Login
+            </Button>
+          </div>
+        )}
+
+        {/* ── Forgot Step 1: Enter Mobile ── */}
+        {loginView === "forgot-step1" && (
+          <div
+            className="w-full max-w-xs sm:max-w-sm rounded-3xl shadow-2xl p-5 sm:p-6 animate-scale-in flex-shrink-0"
+            style={cardStyle}
+          >
+            <div className="flex flex-col items-center mb-4">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                style={{ background: "rgba(249,115,22,0.12)" }}
+              >
+                <KeyRound className="h-6 w-6" style={{ color: "#F97316" }} />
+              </div>
+              <h2 className="font-display text-xl font-bold text-gray-800">
+                Forgot Password
+              </h2>
+              <p className="text-xs text-gray-500 mt-1 text-center">
+                Enter your registered mobile number
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                <Input
+                  data-ocid="login.forgot.mobile_input"
+                  placeholder="10-digit Mobile Number"
+                  value={forgotMobile}
+                  inputMode="numeric"
+                  maxLength={10}
+                  onChange={(e) =>
+                    setForgotMobile(
+                      e.target.value.replace(/\D/g, "").slice(0, 10),
+                    )
+                  }
+                  className="h-12 pl-10 rounded-xl border-gray-200 bg-white text-gray-800"
+                />
+              </div>
+
+              <Button
+                data-ocid="login.forgot.send_otp_button"
+                className="w-full h-12 font-semibold rounded-xl text-white border-0"
+                style={{ background: "#FF7A00" }}
+                disabled={forgotMobile.length !== 10}
+                onClick={handleSendOtp}
+              >
+                Send OTP
+              </Button>
+
+              <div className="text-center">
                 <button
                   type="button"
-                  data-ocid="login.backspace_button"
-                  className="numpad-btn text-destructive"
-                  onClick={onPinClear}
+                  onClick={() => setLoginView("user")}
+                  className="text-xs text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1 mx-auto"
                 >
-                  ⌫
+                  <ArrowLeft className="h-3 w-3" />
+                  Back to Login
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Forgot Step 2: Enter OTP ── */}
+        {loginView === "forgot-step2" && (
+          <div
+            className="w-full max-w-xs sm:max-w-sm rounded-3xl shadow-2xl p-5 sm:p-6 animate-scale-in flex-shrink-0"
+            style={cardStyle}
+          >
+            <div className="flex flex-col items-center mb-4">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                style={{ background: "rgba(249,115,22,0.12)" }}
+              >
+                <KeyRound className="h-6 w-6" style={{ color: "#F97316" }} />
+              </div>
+              <h2 className="font-display text-xl font-bold text-gray-800">
+                Enter OTP
+              </h2>
+            </div>
+
+            {/* OTP info box */}
+            <div
+              className="rounded-xl p-3 mb-4 text-center"
+              style={{
+                background: "rgba(234,179,8,0.12)",
+                border: "1px solid rgba(234,179,8,0.3)",
+              }}
+            >
+              <p className="text-xs text-amber-700 font-medium">
+                OTP sent! Your OTP is:
+              </p>
+              <p className="font-mono font-bold text-2xl text-amber-800 mt-1 tracking-widest">
+                {generatedOtp}
+              </p>
+              <p className="text-[10px] text-amber-600 mt-0.5">
+                (For demo purposes)
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <Input
+                data-ocid="login.forgot.otp_input"
+                placeholder="Enter 6-digit OTP"
+                value={forgotOtp}
+                inputMode="numeric"
+                maxLength={6}
+                onChange={(e) => {
+                  setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 6));
+                  setForgotOtpError("");
+                }}
+                className="h-12 rounded-xl border-gray-200 bg-white text-gray-800 text-center tracking-widest text-lg font-mono"
+              />
+
+              {forgotOtpError && (
+                <p className="text-xs text-red-500 text-center">
+                  {forgotOtpError}
+                </p>
+              )}
+
+              <Button
+                data-ocid="login.forgot.verify_button"
+                className="w-full h-12 font-semibold rounded-xl text-white border-0"
+                style={{ background: "#FF7A00" }}
+                disabled={forgotOtp.length !== 6}
+                onClick={handleVerifyOtp}
+              >
+                Verify OTP
+              </Button>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setLoginView("forgot-step1")}
+                  className="text-xs text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1 mx-auto"
+                >
+                  <ArrowLeft className="h-3 w-3" />
+                  Back
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Forgot Step 3: Set New Password ── */}
+        {loginView === "forgot-step3" && (
+          <div
+            className="w-full max-w-xs sm:max-w-sm rounded-3xl shadow-2xl p-5 sm:p-6 animate-scale-in flex-shrink-0"
+            style={cardStyle}
+          >
+            <div className="flex flex-col items-center mb-4">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                style={{ background: "rgba(249,115,22,0.12)" }}
+              >
+                <Lock className="h-6 w-6" style={{ color: "#F97316" }} />
+              </div>
+              <h2 className="font-display text-xl font-bold text-gray-800">
+                Set New Password
+              </h2>
+            </div>
+
+            <div className="space-y-3">
+              {/* New Password */}
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                <Input
+                  data-ocid="login.forgot.new_password_input"
+                  type={showNewPw ? "text" : "password"}
+                  placeholder="New Password"
+                  value={newPassword}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setForgotPwError("");
+                  }}
+                  className="h-12 pl-10 pr-10 rounded-xl border-gray-200 bg-white text-gray-800"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPw((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
+                >
+                  {showNewPw ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {newPassword.length > 0 && validatePassword(newPassword) && (
+                <p className="text-xs text-red-500 leading-tight">
+                  {validatePassword(newPassword)}
+                </p>
+              )}
+
+              {/* Confirm Password */}
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                <Input
+                  data-ocid="login.forgot.confirm_password_input"
+                  type={showConfirmPw ? "text" : "password"}
+                  placeholder="Confirm Password"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setForgotPwError("");
+                  }}
+                  className="h-12 pl-10 pr-10 rounded-xl border-gray-200 bg-white text-gray-800"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPw((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
+                >
+                  {showConfirmPw ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
 
-              {/* Login button */}
+              {forgotPwError && (
+                <p className="text-xs text-red-500 text-center leading-tight">
+                  {forgotPwError}
+                </p>
+              )}
+
               <Button
-                data-ocid="login.submit_button"
-                className="w-full h-12 text-base font-semibold rounded-xl text-white border-0"
-                style={{
-                  background: loginType === "owner" ? "#0F5132" : "#FF7A00",
-                }}
-                disabled={pin.length < 4}
-                onClick={onLogin}
+                data-ocid="login.forgot.update_button"
+                className="w-full h-12 font-semibold rounded-xl text-white border-0 mt-1"
+                style={{ background: "#FF7A00" }}
+                disabled={
+                  newPassword.length === 0 || confirmPassword.length === 0
+                }
+                onClick={handleUpdatePassword}
               >
-                <Check className="h-5 w-5 mr-2" />
-                Login
+                Update Password
               </Button>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <p
@@ -1601,7 +2170,7 @@ function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
       className="min-h-screen flex flex-col items-center justify-center p-5 sm:p-8"
       style={{
         background:
-          "linear-gradient(160deg, oklch(0.22 0.07 151) 0%, oklch(0.18 0.06 162) 50%, oklch(0.15 0.05 155) 100%)",
+          "linear-gradient(160deg, oklch(0.18 0.04 265) 0%, oklch(0.15 0.03 270) 50%, oklch(0.13 0.04 265) 100%)",
       }}
     >
       {/* Logo + Header */}
@@ -1621,7 +2190,7 @@ function BranchSelectScreen({ onSelect }: { onSelect: (id: number) => void }) {
             overflow: "hidden",
             border: "1.5px solid rgba(255,255,255,0.28)",
             boxShadow:
-              "0 8px 32px 0 rgba(0,0,0,0.32), 0 0 0 4px rgba(255,255,255,0.08), 0 0 24px 6px rgba(15,81,50,0.45)",
+              "0 8px 32px 0 rgba(0,0,0,0.32), 0 0 0 4px rgba(255,255,255,0.08), 0 0 24px 6px rgba(249,115,22,0.35)",
           }}
         >
           <img
@@ -1768,8 +2337,8 @@ const MODULE_CONFIG: {
   {
     label: "Money Management",
     icon: Wallet,
-    iconBg: "oklch(0.55 0.14 151 / 0.18)",
-    iconColor: "oklch(0.55 0.14 151)",
+    iconBg: "oklch(0.55 0.14 42 / 0.18)",
+    iconColor: "oklch(0.55 0.14 42)",
     screen: "money-management",
     ocid: "dashboard.money_management.card",
     description: "Salary & advances",
@@ -3956,10 +4525,6 @@ function totalSalaryPaid(
     .filter((p) => p.employeeId === employeeId && p.type === "Salary")
     .reduce((s, p) => s + p.amount, 0);
 }
-function remainingBalance(emp: Employee): number {
-  return emp.salary - totalAdvanceTaken(emp);
-}
-
 function formatDate(dateStr: string): string {
   const d = new Date(`${dateStr}T00:00:00`);
   return d.toLocaleDateString("en-IN", {
@@ -4001,12 +4566,16 @@ function EmployeesScreen({
   branchId,
   onUpdate,
   allEmployees,
+  attendance,
+  onUpdateAttendance,
   onBack: _onBack,
 }: {
   employees: Employee[];
   branchId: number;
   onUpdate: (e: Employee[]) => void;
   allEmployees: Employee[];
+  attendance: AttendanceRecord[];
+  onUpdateAttendance: (a: AttendanceRecord[]) => void;
   onBack: () => void;
 }) {
   const [showModal, setShowModal] = useState(false);
@@ -4016,6 +4585,10 @@ function EmployeesScreen({
   const [expandedHistory, setExpandedHistory] = useState<Set<string>>(
     new Set(),
   );
+  const [expandedAttendance, setExpandedAttendance] = useState<Set<string>>(
+    new Set(),
+  );
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -4180,76 +4753,129 @@ function EmployeesScreen({
 
   const branchEmployees = employees.filter((e) => e.branchId === branchId);
 
-  // Financial summary
-  const totalSalaryExpense = branchEmployees.reduce((s, e) => s + e.salary, 0);
-  const totalAdvanceGiven = branchEmployees.reduce(
-    (s, e) => s + totalAdvanceTaken(e),
-    0,
-  );
-  const pendingCount = branchEmployees.filter((e) => !e.salaryPaid).length;
+  // Search filter
+  const filteredEmployees = searchQuery.trim()
+    ? branchEmployees.filter((e) => {
+        const q = searchQuery.trim().toLowerCase();
+        return (
+          e.name.toLowerCase().includes(q) ||
+          e.employeeId.toLowerCase().includes(q) ||
+          e.mobile.toLowerCase().includes(q)
+        );
+      })
+    : branchEmployees;
 
-  const summaryCards = [
-    {
-      label: "Total Employees",
-      value: String(branchEmployees.length),
-      icon: <Users className="h-5 w-5 text-primary" />,
-      valueClass: "text-primary",
-    },
-    {
-      label: "Total Salary Expense",
-      value: `₹${totalSalaryExpense.toLocaleString("en-IN")}`,
-      icon: <IndianRupee className="h-5 w-5 text-primary" />,
-      valueClass: "text-primary",
-    },
-    {
-      label: "Total Advance Given",
-      value: `₹${totalAdvanceGiven.toLocaleString("en-IN")}`,
-      icon: <Wallet className="h-5 w-5 text-accent" />,
-      valueClass: "text-accent",
-    },
-    {
-      label: "Pending Salary",
-      value: `${pendingCount} Pending`,
-      icon: <Clock className="h-5 w-5 text-destructive" />,
-      valueClass: "text-destructive",
-    },
-  ];
+  // Attendance helpers
+  const todayDate = todayStr();
+
+  function getAttendanceForDay(
+    empId: string,
+    date: string,
+  ): AttendanceRecord | undefined {
+    return attendance.find((a) => a.employeeId === empId && a.date === date);
+  }
+
+  function markAttendance(emp: Employee, status: "Present" | "Absent") {
+    const existing = getAttendanceForDay(emp.id, todayDate);
+    if (existing) {
+      // Update existing
+      onUpdateAttendance(
+        attendance.map((a) =>
+          a.id === existing.id ? { ...a, status, createdAt: Date.now() } : a,
+        ),
+      );
+    } else {
+      const newRecord: AttendanceRecord = {
+        id: generateId(),
+        employeeId: emp.id,
+        date: todayDate,
+        status,
+        createdAt: Date.now(),
+      };
+      onUpdateAttendance([...attendance, newRecord]);
+    }
+    toast.success(`${emp.name} marked ${status}`);
+  }
+
+  function toggleAttendanceHistory(empId: string) {
+    setExpandedAttendance((prev) => {
+      const next = new Set(prev);
+      if (next.has(empId)) next.delete(empId);
+      else next.add(empId);
+      return next;
+    });
+  }
+
+  // Get last 7 days attendance for an employee
+  function getLast7DaysAttendance(
+    empId: string,
+  ): { date: string; record: AttendanceRecord | undefined }[] {
+    const days: { date: string; record: AttendanceRecord | undefined }[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      days.push({
+        date: dateStr,
+        record: attendance.find(
+          (a) => a.employeeId === empId && a.date === dateStr,
+        ),
+      });
+    }
+    return days;
+  }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-5" data-ocid="employees.page">
+    <div className="max-w-4xl mx-auto p-4 space-y-4" data-ocid="employees.page">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="font-display text-2xl font-bold">Employees</h2>
         <Button
           data-ocid="employees.add_button"
           onClick={openAdd}
-          className="h-11 bg-primary hover:bg-primary/90 rounded-xl gap-2 font-body font-semibold"
+          className="h-10 bg-primary hover:bg-primary/90 rounded-xl gap-2 font-body font-semibold text-sm"
         >
           <Plus className="h-4 w-4" />
           Add Employee
         </Button>
       </div>
 
-      {/* Financial Summary */}
-      <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-3"
-        data-ocid="employees.summary_section"
-      >
-        {summaryCards.map((card) => (
-          <div key={card.label} className="pos-card rounded-2xl p-4">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-2 bg-primary/15">
-              {card.icon}
-            </div>
-            <p
-              className={`text-xl font-bold font-display leading-tight ${card.valueClass}`}
-            >
-              {card.value}
+      {/* Search Bar */}
+      <div className="relative" data-ocid="employees.search_input">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search by name, ID, or mobile..."
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Summary — Total Employees only */}
+      <div data-ocid="employees.summary_section">
+        <div className="pos-card rounded-2xl p-4 flex items-center gap-3 max-w-xs">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/15 flex-shrink-0">
+            <Users className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold font-display text-primary leading-tight">
+              {branchEmployees.length}
             </p>
-            <p className="text-xs font-body mt-0.5 text-muted-foreground">
-              {card.label}
+            <p className="text-xs font-body text-muted-foreground">
+              Total Employees
             </p>
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Employee Cards */}
@@ -4266,13 +4892,27 @@ function EmployeesScreen({
             Tap "Add Employee" to get started
           </p>
         </div>
+      ) : filteredEmployees.length === 0 ? (
+        <div
+          className="text-center py-16 text-muted-foreground pos-card"
+          data-ocid="employees.search.empty_state"
+        >
+          <Search className="h-10 w-10 mx-auto mb-3 opacity-30" />
+          <p className="font-display text-base font-semibold">
+            No Employee Found
+          </p>
+          <p className="text-sm font-body mt-1 opacity-60">
+            Try searching by name, ID, or mobile number
+          </p>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {branchEmployees.map((emp, idx) => {
-            const advance = totalAdvanceTaken(emp);
-            const balance = remainingBalance(emp);
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {filteredEmployees.map((emp, idx) => {
             const avatarColor = AVATAR_COLORS[idx % AVATAR_COLORS.length];
             const isHistoryOpen = expandedHistory.has(emp.id);
+            const isAttendanceOpen = expandedAttendance.has(emp.id);
+            const todayRecord = getAttendanceForDay(emp.id, todayDate);
+            const last7Days = getLast7DaysAttendance(emp.id);
 
             return (
               <div
@@ -4280,25 +4920,25 @@ function EmployeesScreen({
                 data-ocid={`employees.item.${idx + 1}`}
                 className="pos-card p-0 overflow-hidden"
               >
-                {/* Card Header */}
-                <div className="p-4 pb-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
+                {/* Compact Card Header */}
+                <div className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <div
-                        className={`w-12 h-12 rounded-full ${avatarColor} flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm`}
+                        className={`w-9 h-9 rounded-full ${avatarColor} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}
                       >
                         {emp.name.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <p className="font-display font-bold text-base text-foreground">
+                      <div className="min-w-0">
+                        <p className="font-display font-bold text-sm text-foreground leading-tight truncate">
                           {emp.name}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                          <span className="text-xs text-muted-foreground font-body font-medium">
+                          <span className="text-[10px] text-muted-foreground font-body">
                             {emp.employeeId}
                           </span>
                           <span
-                            className={`text-xs px-2 py-0.5 rounded-full border font-body font-medium ${getRoleColor(emp.role)}`}
+                            className={`text-[10px] px-1.5 py-0.5 rounded-full border font-body ${getRoleColor(emp.role)}`}
                           >
                             {emp.role}
                           </span>
@@ -4306,7 +4946,7 @@ function EmployeesScreen({
                       </div>
                     </div>
                     {/* Actions */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
                       <button
                         type="button"
                         data-ocid={`employees.advance_button.${idx + 1}`}
@@ -4318,175 +4958,215 @@ function EmployeesScreen({
                             reason: "",
                           });
                         }}
-                        className="p-2 rounded-xl hover:bg-primary/15 text-primary transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-primary/15 text-primary transition-colors"
                         title="Add Advance"
                       >
-                        <Wallet className="h-4 w-4" />
+                        <Wallet className="h-3.5 w-3.5" />
                       </button>
                       <button
                         type="button"
                         data-ocid={`employees.edit_button.${idx + 1}`}
                         onClick={() => openEdit(emp)}
-                        className="p-2 rounded-xl hover:bg-secondary text-muted-foreground transition-colors"
-                        title="Edit Employee"
+                        className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
+                        title="Edit"
                       >
-                        <Edit3 className="h-4 w-4" />
+                        <Edit3 className="h-3.5 w-3.5" />
                       </button>
                       <button
                         type="button"
                         data-ocid={`employees.delete_button.${idx + 1}`}
                         onClick={() => setDeleteTarget(emp.id)}
-                        className="p-2 rounded-xl hover:bg-destructive/10 text-destructive transition-colors"
-                        title="Delete Employee"
+                        className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                        title="Delete"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
 
-                  {/* Contact info */}
-                  <div className="mt-2 space-y-1 ml-[60px]">
+                  {/* Info row: mobile, join date, salary */}
+                  <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-0.5">
                     {emp.mobile && (
-                      <div className="flex items-center gap-1.5">
-                        <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                        <span className="text-xs font-body text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <span className="text-[11px] font-body text-muted-foreground truncate">
                           {emp.mobile}
                         </span>
                       </div>
                     )}
                     {emp.dateOfJoin && (
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                        <span className="text-xs font-body text-muted-foreground">
-                          Joined: {formatDate(emp.dateOfJoin)}
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <span className="text-[11px] font-body text-muted-foreground">
+                          {formatDate(emp.dateOfJoin)}
                         </span>
                       </div>
                     )}
+                    <div className="flex items-center gap-1 col-span-2 mt-0.5">
+                      <IndianRupee className="h-3 w-3 text-primary flex-shrink-0" />
+                      <span className="text-[11px] font-body text-primary font-semibold">
+                        {emp.salaryType} · ₹{emp.salary.toLocaleString("en-IN")}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Salary Details */}
-                <div className="px-4 pb-3 space-y-2">
-                  <div className="bg-secondary/40 rounded-xl p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-body text-muted-foreground">
-                        {emp.salaryType} Salary
-                      </span>
-                      <span className="text-sm font-bold font-display text-primary">
-                        ₹{emp.salary.toLocaleString("en-IN")}
-                      </span>
-                    </div>
-                    {advance > 0 && (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-body text-accent">
-                            Advance Taken
-                          </span>
-                          <span className="text-sm font-semibold text-accent">
-                            −₹{advance.toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                        <div className="border-t border-border/40 pt-2 flex items-center justify-between">
-                          <span className="text-xs font-body text-foreground font-medium">
-                            Balance
-                          </span>
-                          <span
-                            className={`text-sm font-bold ${balance >= 0 ? "text-primary" : "text-destructive"}`}
-                          >
-                            ₹{balance.toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Status Badge + Toggle */}
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={emp.salaryPaid}
-                        onCheckedChange={() =>
-                          onUpdate(
-                            allEmployees.map((e) =>
-                              e.id === emp.id
-                                ? { ...e, salaryPaid: !e.salaryPaid }
-                                : e,
-                            ),
-                          )
-                        }
-                        className="data-[state=checked]:bg-green-600"
-                        data-ocid={"employees.status.switch"}
-                      />
-                      <span className="text-xs font-body text-muted-foreground">
-                        {emp.salaryPaid ? "Mark as Pending" : "Mark as Paid"}
-                      </span>
-                    </div>
-                    <span
-                      className={`text-xs font-semibold font-body px-3 py-1 rounded-full border ${
-                        emp.salaryPaid
-                          ? "bg-green-900/50 text-green-300 border-green-700/50"
-                          : "bg-orange-900/50 text-orange-300 border-orange-700/50"
-                      }`}
-                    >
-                      {emp.salaryPaid ? "Paid" : "Pending"}
+                {/* Attendance Action Row */}
+                <div className="px-3 pb-3 flex items-center gap-2">
+                  <span className="text-[10px] font-body text-muted-foreground mr-1">
+                    Today:
+                  </span>
+                  <button
+                    type="button"
+                    data-ocid={`employees.mark_present.${idx + 1}`}
+                    onClick={() => markAttendance(emp, "Present")}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold font-body transition-all ${
+                      todayRecord?.status === "Present"
+                        ? "bg-green-600 text-white shadow-sm"
+                        : "bg-green-600/10 text-green-500 hover:bg-green-600/20 border border-green-600/30"
+                    }`}
+                  >
+                    <CheckCircle2 className="h-3 w-3" />
+                    Present
+                  </button>
+                  <button
+                    type="button"
+                    data-ocid={`employees.mark_absent.${idx + 1}`}
+                    onClick={() => markAttendance(emp, "Absent")}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold font-body transition-all ${
+                      todayRecord?.status === "Absent"
+                        ? "bg-red-600 text-white shadow-sm"
+                        : "bg-red-600/10 text-red-500 hover:bg-red-600/20 border border-red-600/30"
+                    }`}
+                  >
+                    <X className="h-3 w-3" />
+                    Absent
+                  </button>
+                  {!todayRecord && (
+                    <span className="text-[10px] text-muted-foreground/60 font-body ml-auto">
+                      Not marked
                     </span>
-                  </div>
+                  )}
                 </div>
 
-                {/* Advance History Toggle */}
+                {/* Collapsible sections */}
                 <div className="border-t border-border/40">
+                  {/* Advance History */}
                   <button
                     type="button"
                     data-ocid={`employees.advance_history_toggle.${idx + 1}`}
                     onClick={() => toggleHistory(emp.id)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-secondary/40 transition-colors"
+                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-secondary/40 transition-colors"
                   >
-                    <div className="flex items-center gap-2 text-xs font-semibold font-body text-muted-foreground">
-                      <History className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold font-body text-muted-foreground">
+                      <History className="h-3 w-3" />
                       Advance History ({emp.advances.length})
                     </div>
                     {isHistoryOpen ? (
-                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
                     ) : (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                     )}
                   </button>
 
                   {isHistoryOpen && (
                     <div
                       data-ocid={`employees.advance_history.${idx + 1}`}
-                      className="px-4 pb-3 space-y-2"
+                      className="px-3 pb-2 space-y-1.5"
                     >
                       {emp.advances.length === 0 ? (
-                        <p className="text-xs font-body text-muted-foreground py-2 text-center">
+                        <p className="text-[11px] font-body text-muted-foreground py-1 text-center">
                           No advances recorded
                         </p>
                       ) : (
-                        <div className="space-y-1.5">
+                        <div className="space-y-1">
                           {[...emp.advances]
                             .sort((a, b) => b.createdAt - a.createdAt)
+                            .slice(0, 5)
                             .map((adv) => (
                               <div
                                 key={adv.id}
-                                className="flex items-start justify-between text-xs font-body bg-primary/8 rounded-lg px-3 py-2"
+                                className="flex items-center justify-between text-[11px] font-body bg-primary/8 rounded-lg px-2 py-1.5"
                               >
-                                <div>
-                                  <span className="text-primary font-semibold">
-                                    {formatDate(adv.date)}
-                                  </span>
+                                <span className="text-primary font-semibold">
+                                  {formatDate(adv.date)}
                                   {adv.reason && (
-                                    <span className="text-muted-foreground ml-1">
+                                    <span className="text-muted-foreground font-normal ml-1">
                                       · {adv.reason}
                                     </span>
                                   )}
-                                </div>
-                                <span className="font-bold text-primary ml-2 flex-shrink-0">
+                                </span>
+                                <span className="font-bold text-primary ml-2">
                                   ₹{adv.amount.toLocaleString("en-IN")}
                                 </span>
                               </div>
                             ))}
                         </div>
                       )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Attendance History */}
+                <div className="border-t border-border/40">
+                  <button
+                    type="button"
+                    data-ocid={`employees.attendance_toggle.${idx + 1}`}
+                    onClick={() => toggleAttendanceHistory(emp.id)}
+                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-secondary/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold font-body text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      Attendance (Last 7 Days)
+                    </div>
+                    {isAttendanceOpen ? (
+                      <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                  </button>
+
+                  {isAttendanceOpen && (
+                    <div
+                      data-ocid={`employees.attendance_history.${idx + 1}`}
+                      className="px-3 pb-3"
+                    >
+                      <div className="flex flex-wrap gap-1.5">
+                        {last7Days.map(({ date, record }) => {
+                          const d = new Date(`${date}T00:00:00`);
+                          const dayLabel = d.toLocaleDateString("en-IN", {
+                            weekday: "short",
+                            day: "2-digit",
+                            month: "short",
+                          });
+                          return (
+                            <div
+                              key={date}
+                              className={`flex flex-col items-center px-2 py-1.5 rounded-lg text-[10px] font-body min-w-[52px] border ${
+                                record?.status === "Present"
+                                  ? "bg-green-600/15 border-green-600/30 text-green-500"
+                                  : record?.status === "Absent"
+                                    ? "bg-red-600/15 border-red-600/30 text-red-500"
+                                    : "bg-secondary/40 border-border text-muted-foreground"
+                              }`}
+                            >
+                              <span className="font-semibold">
+                                {dayLabel.split(",")[0]}
+                              </span>
+                              <span className="opacity-80">
+                                {dayLabel.split(",")[1]?.trim()}
+                              </span>
+                              <span className="font-bold mt-0.5">
+                                {record?.status === "Present"
+                                  ? "P"
+                                  : record?.status === "Absent"
+                                    ? "A"
+                                    : "–"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -4972,6 +5652,8 @@ function SettingsScreen({
   branchId,
   onUpdateGst,
   onUpdateUpi,
+  userAccounts,
+  onUpdateUserAccounts,
   onBack: _onBack,
 }: {
   gstSettings: GSTSettings[];
@@ -4979,6 +5661,8 @@ function SettingsScreen({
   branchId: number;
   onUpdateGst: (settings: GSTSettings[]) => void;
   onUpdateUpi: (settings: UpiSettings[]) => void;
+  userAccounts: UserAccount[];
+  onUpdateUserAccounts: (accounts: UserAccount[]) => void;
   onBack: () => void;
 }) {
   const currentGst = gstSettings.find((g) => g.branchId === branchId) ?? {
@@ -4999,6 +5683,100 @@ function SettingsScreen({
   });
 
   const [upiId, setUpiId] = useState(currentUpi.upiId);
+
+  // ── User Accounts state ──────────────────────────────────────────────────
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
+  const [userDeleteId, setUserDeleteId] = useState<string | null>(null);
+  const [userForm, setUserForm] = useState({
+    username: "",
+    mobile: "",
+    password: "",
+    branchId: branchId,
+  });
+  const [showUserFormPw, setShowUserFormPw] = useState(false);
+  const [userFormError, setUserFormError] = useState("");
+
+  function openAddUser() {
+    setEditingUser(null);
+    setUserForm({ username: "", mobile: "", password: "", branchId });
+    setShowUserFormPw(false);
+    setUserFormError("");
+    setShowUserModal(true);
+  }
+
+  function openEditUser(u: UserAccount) {
+    setEditingUser(u);
+    setUserForm({
+      username: u.username,
+      mobile: u.mobile,
+      password: "",
+      branchId: u.branchId,
+    });
+    setShowUserFormPw(false);
+    setUserFormError("");
+    setShowUserModal(true);
+  }
+
+  function handleSaveUser() {
+    const { username, mobile, password } = userForm;
+    if (!username.trim()) {
+      setUserFormError("Username is required.");
+      return;
+    }
+    if (mobile.length !== 10) {
+      setUserFormError("Mobile number must be 10 digits.");
+      return;
+    }
+    if (!editingUser) {
+      // Add: password required
+      const pwErr = validatePassword(password);
+      if (pwErr) {
+        setUserFormError(pwErr);
+        return;
+      }
+    } else if (password.length > 0) {
+      // Edit: password optional but validate if provided
+      const pwErr = validatePassword(password);
+      if (pwErr) {
+        setUserFormError(pwErr);
+        return;
+      }
+    }
+    if (editingUser) {
+      const updated = userAccounts.map((u) =>
+        u.id === editingUser.id
+          ? {
+              ...u,
+              username: username.trim(),
+              mobile: mobile.trim(),
+              password: password.length > 0 ? password : u.password,
+              branchId: userForm.branchId,
+            }
+          : u,
+      );
+      onUpdateUserAccounts(updated);
+      toast.success("User updated!");
+    } else {
+      const newUser: UserAccount = {
+        id: generateId(),
+        username: username.trim(),
+        mobile: mobile.trim(),
+        password,
+        branchId: userForm.branchId,
+        createdAt: Date.now(),
+      };
+      onUpdateUserAccounts([...userAccounts, newUser]);
+      toast.success("User added!");
+    }
+    setShowUserModal(false);
+  }
+
+  function handleDeleteUser(id: string) {
+    onUpdateUserAccounts(userAccounts.filter((u) => u.id !== id));
+    setUserDeleteId(null);
+    toast.success("User deleted.");
+  }
 
   function handleSaveGst() {
     const updated = gstSettings.some((g) => g.branchId === branchId)
@@ -5253,6 +6031,249 @@ function SettingsScreen({
           Save GST Settings
         </Button>
       </div>
+
+      {/* ── User Accounts ─────────────────────────────────── */}
+      <div
+        className="pos-card p-5 space-y-4"
+        data-ocid="settings.user_accounts_section"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-primary/12">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">User Accounts</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Staff login credentials
+              </p>
+            </div>
+          </div>
+          <Button
+            data-ocid="settings.add_user_button"
+            size="sm"
+            onClick={openAddUser}
+            className="rounded-xl h-9 px-3 font-semibold text-xs gap-1.5"
+            style={{ background: "#FF7A00" }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add User
+          </Button>
+        </div>
+
+        <Separator />
+
+        {userAccounts.length === 0 ? (
+          <div
+            className="text-center py-6 text-muted-foreground"
+            data-ocid="settings.user_accounts_empty_state"
+          >
+            <User className="h-8 w-8 mx-auto mb-2 opacity-30" />
+            <p className="text-sm font-body">
+              No user accounts. Add one to allow staff login.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {userAccounts.map((u, idx) => {
+              const uBranch = BRANCHES.find((b) => b.id === u.branchId);
+              return (
+                <div
+                  key={u.id}
+                  data-ocid={`settings.user_accounts.item.${idx + 1}`}
+                  className="flex items-center justify-between p-3 rounded-xl border border-border bg-secondary/30"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm truncate">
+                      {u.username}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-body">
+                      {u.mobile} · {uBranch?.short ?? "—"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      type="button"
+                      data-ocid={`settings.user.edit_button.${idx + 1}`}
+                      onClick={() => openEditUser(u)}
+                      className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors"
+                    >
+                      <Edit3 className="h-3.5 w-3.5 text-primary" />
+                    </button>
+                    <button
+                      type="button"
+                      data-ocid={`settings.user.delete_button.${idx + 1}`}
+                      onClick={() => setUserDeleteId(u.id)}
+                      className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Add/Edit User Modal ── */}
+      <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
+        <DialogContent
+          className="sm:max-w-sm rounded-2xl"
+          data-ocid="settings.user.modal"
+        >
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              {editingUser ? "Edit User" : "Add User"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-sm font-body font-medium">Username</Label>
+              <Input
+                data-ocid="settings.user.username_input"
+                value={userForm.username}
+                onChange={(e) =>
+                  setUserForm((f) => ({ ...f, username: e.target.value }))
+                }
+                placeholder="e.g. kumar"
+                className="mt-1.5 h-11 rounded-xl"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-body font-medium">
+                Mobile Number
+              </Label>
+              <Input
+                data-ocid="settings.user.mobile_input"
+                value={userForm.mobile}
+                inputMode="numeric"
+                maxLength={10}
+                onChange={(e) =>
+                  setUserForm((f) => ({
+                    ...f,
+                    mobile: e.target.value.replace(/\D/g, "").slice(0, 10),
+                  }))
+                }
+                placeholder="10-digit mobile"
+                className="mt-1.5 h-11 rounded-xl"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-body font-medium">
+                Password{" "}
+                {editingUser && (
+                  <span className="text-xs text-muted-foreground font-normal">
+                    (leave blank to keep existing)
+                  </span>
+                )}
+              </Label>
+              <div className="relative mt-1.5">
+                <Input
+                  data-ocid="settings.user.password_input"
+                  type={showUserFormPw ? "text" : "password"}
+                  value={userForm.password}
+                  onChange={(e) =>
+                    setUserForm((f) => ({ ...f, password: e.target.value }))
+                  }
+                  placeholder={
+                    editingUser ? "Leave blank to keep current" : "Password"
+                  }
+                  className="h-11 rounded-xl pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowUserFormPw((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showUserFormPw ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-sm font-body font-medium">Branch</Label>
+              <Select
+                value={String(userForm.branchId)}
+                onValueChange={(v) =>
+                  setUserForm((f) => ({
+                    ...f,
+                    branchId: Number.parseInt(v, 10),
+                  }))
+                }
+              >
+                <SelectTrigger
+                  className="mt-1.5 h-11 rounded-xl"
+                  data-ocid="settings.user.branch_select"
+                >
+                  <SelectValue placeholder="Select branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BRANCHES.map((b) => (
+                    <SelectItem key={b.id} value={String(b.id)}>
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {userFormError && (
+              <p className="text-xs text-red-500 font-body">{userFormError}</p>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              data-ocid="settings.user.cancel_button"
+              variant="outline"
+              className="rounded-xl h-11"
+              onClick={() => setShowUserModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              data-ocid="settings.user.save_button"
+              className="rounded-xl h-11 bg-primary hover:bg-primary/90"
+              onClick={handleSaveUser}
+            >
+              {editingUser ? "Update" : "Add User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete User Confirmation ── */}
+      <AlertDialog
+        open={!!userDeleteId}
+        onOpenChange={(o) => !o && setUserDeleteId(null)}
+      >
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this user account? They will no
+              longer be able to log in.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="rounded-xl"
+              onClick={() => setUserDeleteId(null)}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-xl bg-red-600 hover:bg-red-700"
+              onClick={() => userDeleteId && handleDeleteUser(userDeleteId)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
