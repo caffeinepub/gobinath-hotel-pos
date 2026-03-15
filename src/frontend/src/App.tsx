@@ -41,6 +41,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   Clock,
@@ -68,6 +69,7 @@ import {
   Search,
   Settings,
   Shield,
+  ShieldCheck,
   ShoppingCart,
   Store,
   Sun,
@@ -728,7 +730,7 @@ export default function App() {
 
   function handleLogin() {
     if (loginType === "owner") {
-      if (pin === "1234") {
+      if (pin === "8274") {
         setRole("owner");
         setPin("");
         setPinError("");
@@ -739,7 +741,7 @@ export default function App() {
         setPin("");
       }
     } else if (loginType === "staff") {
-      if (pin === "0000") {
+      if (pin === "9020") {
         setRole("staff");
         setPin("");
         setPinError("");
@@ -1376,6 +1378,7 @@ function SidebarClock() {
 
 type LoginView =
   | "select"
+  | "login-type-select"
   | "user"
   | "pin-entry"
   | "forgot-step1"
@@ -1530,6 +1533,312 @@ function LoginScreen({
     border: "1px solid rgba(255,255,255,0.25)",
   };
 
+  // ── Welcome Screen (white, no dark bg) ──
+  if (loginView === "select") {
+    return (
+      <div
+        data-ocid="login.welcome_screen"
+        className="fixed inset-0 bg-white flex flex-col items-center justify-center px-6"
+      >
+        {/* Logo */}
+        <img
+          src="/assets/uploads/modern-restaurant-logo-design-for-keeaap_FMTnl_lcRTG9KHviZ8Oxbw_iIsYXoF4R0OuTPt3-5QqLA_sd-1.jpeg"
+          alt="Gobinath Hotel Logo"
+          className="w-[220px] sm:w-[300px] object-contain mb-10 animate-fade-in"
+          style={{ height: "auto" }}
+        />
+
+        {/* Buttons */}
+        <div className="flex flex-col gap-4 w-full max-w-[320px] sm:max-w-[380px]">
+          <button
+            type="button"
+            data-ocid="login.login_button"
+            onClick={() => setLoginView("login-type-select")}
+            className="w-full h-14 rounded-2xl font-bold text-lg uppercase tracking-widest text-white transition-all active:scale-[0.98] hover:scale-[1.02]"
+            style={{
+              background: "linear-gradient(135deg, #FF8C00, #FF6500)",
+              boxShadow: "0 4px 20px rgba(255,120,0,0.45)",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                "0 6px 28px rgba(255,120,0,0.65)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                "0 4px 20px rgba(255,120,0,0.45)";
+            }}
+          >
+            LOGIN
+          </button>
+          <button
+            type="button"
+            data-ocid="login.signup_button"
+            onClick={() => setLoginView("user")}
+            className="w-full h-14 rounded-2xl font-bold text-lg uppercase tracking-widest text-white transition-all active:scale-[0.98] hover:scale-[1.02]"
+            style={{
+              background: "linear-gradient(135deg, #FF8C00, #FF6500)",
+              boxShadow: "0 4px 20px rgba(255,120,0,0.45)",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                "0 6px 28px rgba(255,120,0,0.65)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                "0 4px 20px rgba(255,120,0,0.45)";
+            }}
+          >
+            SIGN UP
+          </button>
+        </div>
+
+        {/* Footer */}
+        <p className="absolute bottom-4 text-xs text-gray-400 font-medium">
+          Powered By NextYU Solution
+        </p>
+      </div>
+    );
+  }
+
+  // ── Login Type Selection Screen ──
+  if (loginView === "login-type-select") {
+    return (
+      <div
+        data-ocid="welcome.page"
+        className="fixed inset-0 bg-white flex flex-col items-center justify-center px-6"
+        style={{ fontFamily: "'Poppins', sans-serif" }}
+      >
+        {/* Title */}
+        <div className="text-center mb-8 animate-fade-in">
+          <h1
+            className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-3"
+            style={{
+              fontFamily: "'Playfair Display', 'Georgia', serif",
+              color: "#F97316",
+            }}
+          >
+            Welcome to
+            <br />
+            Gobinath Hotel
+          </h1>
+          <p className="text-gray-500 text-base sm:text-lg font-normal">
+            Restaurant Management System
+          </p>
+        </div>
+
+        {/* Card */}
+        <div
+          className="w-full max-w-[340px] sm:max-w-[420px] bg-white rounded-2xl p-7 sm:p-8 animate-scale-in"
+          style={{
+            boxShadow: "0 8px 40px rgba(0,0,0,0.10)",
+            border: "1px solid #f0f0f0",
+          }}
+        >
+          <h2
+            className="text-center text-2xl sm:text-3xl font-bold text-gray-900 mb-1"
+            style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}
+          >
+            Welcome
+          </h2>
+          <p className="text-center text-gray-500 text-sm sm:text-base mb-6">
+            Select your login type
+          </p>
+
+          {/* Owner Login Button */}
+          <button
+            type="button"
+            data-ocid="welcome.owner_login_button"
+            onClick={() => {
+              onSelectType("owner");
+              setLoginView("pin-entry");
+            }}
+            className="w-full h-14 sm:h-16 rounded-xl flex items-center gap-4 px-5 mb-4 transition-all active:scale-[0.98] hover:scale-[1.01] font-semibold text-base sm:text-lg"
+            style={{
+              background: "#FFF8F0",
+              border: "2px solid #F97316",
+              color: "#F97316",
+            }}
+          >
+            <span
+              className="flex items-center justify-center w-10 h-10 rounded-lg flex-shrink-0"
+              style={{ background: "rgba(249,115,22,0.12)" }}
+            >
+              <ShieldCheck className="w-5 h-5" style={{ color: "#F97316" }} />
+            </span>
+            <span>Owner Login</span>
+          </button>
+
+          {/* Staff Login Button */}
+          <button
+            type="button"
+            data-ocid="welcome.staff_login_button"
+            onClick={() => {
+              onSelectType("staff");
+              setLoginView("pin-entry");
+            }}
+            className="w-full h-14 sm:h-16 rounded-xl flex items-center gap-4 px-5 transition-all active:scale-[0.98] hover:scale-[1.01] font-semibold text-base sm:text-lg text-white"
+            style={{
+              background: "#2D3748",
+            }}
+          >
+            <span
+              className="flex items-center justify-center w-10 h-10 rounded-lg flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.12)" }}
+            >
+              <UserCog className="w-5 h-5 text-white" />
+            </span>
+            <span>Staff Login</span>
+          </button>
+        </div>
+
+        {/* Back button */}
+        <button
+          type="button"
+          data-ocid="login.back_to_welcome_button"
+          onClick={() => setLoginView("select")}
+          className="mt-6 flex items-center gap-2 text-gray-400 hover:text-gray-600 text-sm font-medium transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+
+        {/* Footer */}
+        <p className="absolute bottom-4 text-xs text-gray-400 font-medium">
+          Powered By <span style={{ color: "#F97316" }}>NextYU Solution</span>
+        </p>
+      </div>
+    );
+  }
+
+  // ── PIN Entry standalone (white background) ──
+  if (loginView === "pin-entry") {
+    return (
+      <div
+        data-ocid={
+          loginType === "owner" ? "owner_login.page" : "staff_login.page"
+        }
+        className="fixed inset-0 bg-white flex flex-col items-center justify-center px-6"
+        style={{ fontFamily: "'Poppins', sans-serif" }}
+      >
+        {/* Back button */}
+        <button
+          type="button"
+          data-ocid={
+            loginType === "owner"
+              ? "owner_login.back_button"
+              : "staff_login.back_button"
+          }
+          onClick={() => setLoginView("login-type-select")}
+          className="absolute top-5 left-5 flex items-center gap-2 text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          Back
+        </button>
+
+        {/* Heading */}
+        <h1
+          className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 text-center"
+          style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}
+        >
+          {loginType === "owner" ? "Owner Login" : "Staff Login"}
+        </h1>
+
+        {/* Card */}
+        <div
+          className="w-full max-w-[320px] sm:max-w-[380px] bg-white rounded-2xl p-7 sm:p-8"
+          style={{
+            boxShadow: "0 8px 40px rgba(0,0,0,0.10)",
+            border: "1px solid #f0f0f0",
+          }}
+        >
+          {/* PIN dots */}
+          <div className="flex justify-center gap-5 mb-8">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="w-4 h-4 rounded-full border-2 transition-all"
+                style={{
+                  background: i < pin.length ? "#F97316" : "transparent",
+                  borderColor: i < pin.length ? "#F97316" : "#D1D5DB",
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Error */}
+          {pinError && (
+            <p
+              className="text-red-500 text-sm text-center mb-4 font-medium"
+              data-ocid={
+                loginType === "owner"
+                  ? "owner_login.error_state"
+                  : "staff_login.error_state"
+              }
+            >
+              Invalid PIN
+            </p>
+          )}
+
+          {/* Numpad */}
+          <div className="grid grid-cols-3 gap-3 mb-5">
+            {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
+              <button
+                type="button"
+                key={d}
+                onClick={() => onPinDigit(d)}
+                className="h-16 rounded-xl bg-gray-100 text-gray-900 text-2xl font-semibold active:scale-95 transition-transform hover:bg-gray-200"
+              >
+                {d}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={onPinClearAll}
+              className="h-16 rounded-xl bg-gray-100 text-orange-500 text-base font-bold active:scale-95 transition-transform hover:bg-gray-200"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={() => onPinDigit("0")}
+              className="h-16 rounded-xl bg-gray-100 text-gray-900 text-2xl font-semibold active:scale-95 transition-transform hover:bg-gray-200"
+            >
+              0
+            </button>
+            <button
+              type="button"
+              onClick={onPinClear}
+              className="h-16 rounded-xl bg-gray-100 text-red-500 text-2xl font-semibold active:scale-95 transition-transform hover:bg-gray-200"
+            >
+              ⌫
+            </button>
+          </div>
+
+          {/* Login button */}
+          <button
+            type="button"
+            data-ocid={
+              loginType === "owner"
+                ? "owner_login.primary_button"
+                : "staff_login.primary_button"
+            }
+            disabled={pin.length < 4}
+            onClick={onLogin}
+            className="w-full h-14 rounded-xl text-white text-lg font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: pin.length < 4 ? "#FDBA74" : "#F97316" }}
+          >
+            Login
+          </button>
+        </div>
+
+        {/* Footer */}
+        <p className="absolute bottom-4 text-xs text-gray-400 font-medium">
+          Powered by NextYU Solution
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
@@ -1541,93 +1850,6 @@ function LoginScreen({
       <div className="flex flex-col items-center w-full px-5 sm:px-8 max-h-screen overflow-y-auto py-4 sm:py-6 scrollbar-hide">
         {/* Logo + Title */}
         {logoEl}
-
-        {/* ── Select Login Type (default) ── */}
-        {loginView === "select" && (
-          <div
-            data-ocid="login.select_screen"
-            className="w-full max-w-xs sm:max-w-sm rounded-3xl shadow-2xl p-5 sm:p-6 animate-scale-in flex-shrink-0"
-            style={cardStyle}
-          >
-            <h2 className="text-center font-display text-xl font-bold text-gray-800 mb-2">
-              Welcome
-            </h2>
-            <p className="text-center text-xs text-gray-500 mb-5">
-              Select your login type
-            </p>
-
-            <div className="space-y-3">
-              {/* Owner Login */}
-              <button
-                type="button"
-                data-ocid="login.owner_card_button"
-                onClick={() => {
-                  onSelectType("owner");
-                  setLoginView("pin-entry");
-                }}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 active:scale-95 transition-all min-h-[64px]"
-                style={{
-                  borderColor: "#FF7A00",
-                  background: "rgba(255,122,0,0.04)",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(255,122,0,0.10)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(255,122,0,0.04)";
-                }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: "rgba(255,122,0,0.12)" }}
-                >
-                  <Shield className="h-5 w-5" style={{ color: "#FF7A00" }} />
-                </div>
-                <span
-                  className="font-semibold text-base"
-                  style={{ color: "#FF7A00" }}
-                >
-                  Owner Login
-                </span>
-              </button>
-
-              {/* Staff Login */}
-              <button
-                type="button"
-                data-ocid="login.staff_card_button"
-                onClick={() => setLoginView("user")}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 active:scale-95 transition-all min-h-[64px]"
-                style={{
-                  borderColor: "#334155",
-                  background: "rgba(51,65,85,0.04)",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(51,65,85,0.10)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(51,65,85,0.04)";
-                }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: "rgba(51,65,85,0.12)" }}
-                >
-                  <Users className="h-5 w-5" style={{ color: "#334155" }} />
-                </div>
-                <span
-                  className="font-semibold text-base"
-                  style={{ color: "#334155" }}
-                >
-                  Staff Login
-                </span>
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* ── Staff / User Login ── */}
         {loginView === "user" && (
@@ -1757,119 +1979,6 @@ function LoginScreen({
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* ── PIN Entry ── */}
-        {loginView === "pin-entry" && (
-          <div
-            className="w-full max-w-xs sm:max-w-sm rounded-3xl shadow-2xl p-5 sm:p-6 animate-scale-in flex-shrink-0"
-            style={cardStyle}
-          >
-            {/* Back button */}
-            <button
-              type="button"
-              data-ocid="login.pin_back_button"
-              onClick={() => setLoginView("select")}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 mb-4 font-medium"
-            >
-              <ArrowLeft className="h-3 w-3" />
-              Back
-            </button>
-
-            {/* Header */}
-            <div className="flex items-center justify-center mb-4">
-              <h2 className="font-display text-lg font-bold text-gray-800 flex items-center gap-2">
-                {loginType === "owner" ? (
-                  <>
-                    <Shield className="h-5 w-5" style={{ color: "#FF7A00" }} />
-                    Owner PIN
-                  </>
-                ) : (
-                  <>
-                    <UserCog className="h-5 w-5" style={{ color: "#FF7A00" }} />
-                    Staff PIN
-                  </>
-                )}
-              </h2>
-            </div>
-
-            {/* PIN dots */}
-            <div
-              className="flex justify-center gap-4 mb-5"
-              data-ocid="login.pin_input"
-            >
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className={`pin-dot ${i < pin.length ? "filled" : ""}`}
-                  style={
-                    loginType === "staff"
-                      ? ({ "--pin-color": "#FF7A00" } as React.CSSProperties)
-                      : undefined
-                  }
-                />
-              ))}
-            </div>
-
-            {/* Error */}
-            {pinError && (
-              <p
-                className="text-red-500 text-sm text-center mb-3 font-medium animate-fade-in"
-                data-ocid="login.error_state"
-              >
-                {pinError}
-              </p>
-            )}
-
-            {/* Numpad */}
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
-                <button
-                  type="button"
-                  key={d}
-                  className="numpad-btn"
-                  onClick={() => onPinDigit(d)}
-                >
-                  {d}
-                </button>
-              ))}
-              <button
-                type="button"
-                data-ocid="login.clear_button"
-                className="numpad-btn font-bold"
-                style={{ color: "#FF7A00" }}
-                onClick={onPinClearAll}
-              >
-                C
-              </button>
-              <button
-                type="button"
-                className="numpad-btn"
-                onClick={() => onPinDigit("0")}
-              >
-                0
-              </button>
-              <button
-                type="button"
-                data-ocid="login.backspace_button"
-                className="numpad-btn text-red-500"
-                onClick={onPinClear}
-              >
-                ⌫
-              </button>
-            </div>
-
-            <Button
-              data-ocid="login.submit_button"
-              className="w-full h-12 text-base font-semibold rounded-xl text-white border-0"
-              style={{ background: "#FF7A00" }}
-              disabled={pin.length < 4}
-              onClick={onLogin}
-            >
-              <Check className="h-5 w-5 mr-2" />
-              Login
-            </Button>
           </div>
         )}
 
